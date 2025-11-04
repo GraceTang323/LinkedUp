@@ -1,5 +1,6 @@
 package com.cs407.linkedup.screens
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -86,6 +87,11 @@ fun MapScreen(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState
     ) {
+        LaunchedEffect(uiState.currentLocation) {
+            Log.d("MapScreen", "Current Location: ${uiState.currentLocation}, " +
+                    "Error: ${uiState.error}")
+        }
+
         uiState.currentLocation?.let { location ->
             MarkerComposable(
                 state = MarkerState(position = location),
