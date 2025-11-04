@@ -83,6 +83,7 @@ fun MainScreen() {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable("login"){ LoginScreen() }
             composable("home") { MapScreen() }
             composable("chat") { ChatsScreenPlaceholder() }
             composable("settings") { SettingsScreenPlaceholder() }
