@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.cs407.linkedup" />
+                  <option name="mobileSdkAppId" value="1:331334950883:android:7d947c39b9d8f1d7c5cad6" />
+                  <option name="projectId" value="linkedup-25082" />
+                  <option name="projectNumber" value="331334950883" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
