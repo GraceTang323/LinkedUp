@@ -2,4 +2,10 @@
     <string name="app_name">LinkedUp</string>
     <string name="email_label">Email</string>
     <string name="password_label">Password</string>
+    <string name="create_one">Create one</string>
+    <string name="account_prompt">Don\'t have an account?\u0020</string>
+    <string name="create_prompt">Create one</string>
+    <string name="login_button">Login</string>
+    <string name="create_button">Create Account</string>
+    <string name="sign_in">SIGN IN</string>
 </resources>

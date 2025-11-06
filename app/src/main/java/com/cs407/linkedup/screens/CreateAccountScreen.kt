@@ -1,16 +1,12 @@
 package com.cs407.linkedup.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement.Absolute.spacedBy
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -30,54 +26,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.cs407.linkedup.R
-@Composable
-fun appTitle(){
-    Text(
-        buildAnnotatedString {
-            append("LINKED")
-            withStyle(style = SpanStyle(color = Color.Green)){
-                append("UP")
-            }
-        },
-        fontSize = 36.sp,
-        fontWeight = FontWeight.Bold
-    )
-}
 
 @Composable
-fun signInText(){
+fun pageTitle(){
     Text(
-        text = stringResource(id = R.string.sign_in),
-        fontSize = 20.sp
+        fontSize = 24.sp,
+        fontWeight = FontWeight.Bold,
+        text = stringResource(id = R.string.create_button),
     )
 }
 @Composable
-fun userEmail(
+fun emailField(
     email: String,
     onEmailChange: (String) -> Unit
-    ){
+){
     OutlinedTextField(
         value = email,
         onValueChange = onEmailChange,
-        label = { Text(text = stringResource(id = R.string.email_label ))},
+        label = { Text(stringResource(id = R.string.email_label)) },
         singleLine = true,
         modifier = Modifier.width(280.dp)
     )
 }
 
 @Composable
-fun userPassword(
+fun passwordField(
     password: String,
     onPasswordChange: (String) -> Unit
 ){
@@ -85,7 +64,7 @@ fun userPassword(
     OutlinedTextField(
         value = password,
         onValueChange = onPasswordChange,
-        label = { Text( text = stringResource(id = R.string.password_label ))},
+        label = { Text(stringResource(id = R.string.password_label)) },
         singleLine = true,
         modifier = Modifier.width(280.dp),
         visualTransformation = if(!passwordVisible) {
@@ -106,50 +85,56 @@ fun userPassword(
 }
 
 @Composable
-fun createAccountPrompt(
-    onCreateAccountClick: () -> Unit
-    //This will need onCreateAttempt() as a param
-) {
-    Row() {
-        Text(
-            text = stringResource(id = R.string.account_prompt),
-        )
-        Text(
-            text = stringResource(id = R.string.create_prompt),
-            color = Color.Blue,
-            modifier = Modifier.clickable { onCreateAccountClick() }
-        )
-    }
+fun passwordConfirmField(
+    passwordConfirm: String,
+    onPasswordConfirmChange: (String) -> Unit
+){
+    var passwordVisible by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        value = passwordConfirm,
+        onValueChange = onPasswordConfirmChange,
+        label = { Text(stringResource(id = R.string.password_label)) },
+        singleLine = true,
+        modifier = Modifier.width(280.dp),
+        visualTransformation = if(!passwordVisible) {
+            PasswordVisualTransformation()
+        } else {
+            VisualTransformation.None
+        },
+        trailingIcon = {
+            val image = if (passwordVisible)
+                Icons.Default.Visibility
+            else
+                Icons.Default.VisibilityOff
+            IconButton( onClick = { passwordVisible = !passwordVisible } ){
+                Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show pasword" )
+            }
+        }
+    )
 }
 
 @Composable
-fun createLoginButton(
-    onLoginClick: () -> Unit
-    //This function will need onLoginAttempt() as a param
-) {
+fun createAccountButton(
+    onCreateAccountClick: () -> Unit
+){
     Button(
+        onClick = onCreateAccountClick,
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Green,
             contentColor = Color.Black
-        ),
-        onClick = onLoginClick,
-
-    ){
-        Text(
-            text = stringResource(id = R.string.login_button)
         )
+    ){
+        Text( text = stringResource(id = R.string.create_button) )
     }
 }
 @Composable
-fun LoginScreen (
-    // This function should take the following parameters, but I'm not sure how we want to implement them
-//    onLoginAttempt: () -> Unit,
-//    onCreateAttempt: () -> Unit
-    onCreateAccountClick: () -> Unit,
-    onLoginClick: () -> Unit
+fun CreateAccountScreen(
+    onCreateAccountClick: () -> Unit
+    //This function will need some type of function that authorizes the user's account
 ){
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("")}
+    var password by remember { mutableStateOf("") }
+    var passwordConfirm by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
 
     Scaffold { innerPadding ->
@@ -157,20 +142,16 @@ fun LoginScreen (
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = spacedBy(10.dp)
-        ) {
-            appTitle()
-            Spacer(modifier = Modifier.height(60.dp))
-            signInText()
-            Spacer(modifier = Modifier.height(20.dp))
-            userEmail(email, { input -> email = input })
-            userPassword(password, { input -> password = input } )
-            createAccountPrompt(onCreateAccountClick)
-            Spacer(modifier = Modifier.height(5.dp))
-            createLoginButton(onLoginClick)
+            verticalArrangement = spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
 
-
+        ){
+            Spacer(modifier = Modifier.height(200.dp))
+            pageTitle()
+            emailField(email, { input -> email = input })
+            passwordField(password, { input -> password = input })
+            passwordConfirmField(passwordConfirm, { input -> passwordConfirm = input })
+            createAccountButton(onCreateAccountClick)
 
 
         }

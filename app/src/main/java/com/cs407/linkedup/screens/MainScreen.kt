@@ -83,7 +83,13 @@ fun MainScreen() {
             startDestination = "login",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("login"){ LoginScreen() }
+            composable("login"){ LoginScreen(
+                onCreateAccountClick = { navController.navigate("create_account") },
+                onLoginClick = { navController.navigate("home")}
+                ) }
+            composable("create_account") { CreateAccountScreen(
+                onCreateAccountClick = { navController.navigate("home") }
+            ) }
             composable("home") { MapScreen() }
             composable("chat") { ChatsScreenPlaceholder() }
             composable("settings") { SettingsScreenPlaceholder() }
