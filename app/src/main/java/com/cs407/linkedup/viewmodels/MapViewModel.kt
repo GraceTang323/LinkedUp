@@ -15,6 +15,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+// Represents a student with their name, subject, and location
+// Can add more attributes (like a list of subjects and interests) once databases are set up
+data class Student(
+    val name: String,
+    val major: String,
+    val location: LatLng
+)
+
 data class MapState(
     // A list of markers currently displayed on the map
     val markers: List<LatLng> = emptyList(),
@@ -37,6 +45,16 @@ class MapViewModel: ViewModel() {
 
     // Interacts with the Google Maps SDK to retrieve location data
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    // TODO: Delete this and replace with "real" student data once database is set up
+    private val _mockStudents = listOf(
+        Student("John Doe", "Computer Science", LatLng(43.0731, -89.4052)),
+        Student("Sam Smith", "Biochemical Engineering", LatLng(43.0736, -89.4066)),
+        Student("Mary Harvey", "Nursing", LatLng(43.0720, -89.4050)),
+        Student("Flint Lockwood", "Nursing", LatLng(43.0739, -89.4046)),
+    )
+    // List of fake students for map testing purposes
+    val mockStudents: List<Student> get() = _mockStudents
 
     // Initializes the location client when a valid Context becomes available
     fun initializeLocationClient(context: Context) {
