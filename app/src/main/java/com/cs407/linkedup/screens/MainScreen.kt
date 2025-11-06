@@ -88,9 +88,14 @@ fun MainScreen() {
                 onLoginClick = { navController.navigate("home")}
                 ) }
             composable("create_account") { CreateAccountScreen(
-                onCreateAccountClick = { navController.navigate("home") }
+                onCreateAccountClick = { navController.navigate("create_profile") }
             ) }
-            composable("create_profile") { }
+            composable("create_profile") { CreateProfileScreen(
+                //TODO: PLACEHOLDER FUNCTIONS MUST BE REPLACED
+                hasPhotoAccess = { true },
+                requestPhotoAccess = { },
+                onNextButtonClick = { navController.navigate("home") }
+            ) }
             composable("home") { MapScreen() }
             composable("chat") { ChatsScreenPlaceholder() }
             composable("settings") { SettingsScreenPlaceholder() }

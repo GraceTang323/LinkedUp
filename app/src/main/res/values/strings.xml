@@ -9,4 +9,13 @@
     <string name="create_button">Create Account</string>
     <string name="sign_in">SIGN IN</string>
     <string name="create_profile">Create Your Profile</string>
+    <string name="change_picture">Choose Picture</string>
+    <string name="name_label">Name</string>
+    <string name="major_label">Major</string>
+    <string name="bio_label">Bio</string>
+    <string name="name_placeholder">Buckingham Badger</string>
+    <string name="major_placeholder">Computer Science</string>
+    <string name="bio_placeholder">I think Buckingham is the best...</string>
+    <string name="next">Next</string>
+
 </resources>
