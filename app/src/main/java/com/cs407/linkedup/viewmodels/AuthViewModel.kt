@@ -3,11 +3,17 @@ package com.cs407.linkedup.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cs407.linkedup.auth.*
+import com.cs407.linkedup.data.UserPreferences
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 data class AuthState(
     val isLoading: Boolean = false,
@@ -21,6 +27,10 @@ class AuthViewModel : ViewModel() {
 
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState
+
+    private val _userState = MutableStateFlow(UserState())
+    val userState: StateFlow<UserState> = _userState
+
 
     init {
         // Check if user is already logged in
@@ -127,6 +137,7 @@ class AuthViewModel : ViewModel() {
                         isSuccess = true,
                         currentUser = result.user
                     )
+                    _userState.value = UserState.from(result.user)
                 }
                 is AuthResult.Error -> {
                     _authState.value = AuthState(
@@ -149,10 +160,12 @@ class AuthViewModel : ViewModel() {
             val success = updateName(name, auth)
             if (success) {
                 // Refresh current user
+                val refreshed = auth.currentUser
                 _authState.value = _authState.value.copy(
                     isLoading = false,
                     currentUser = auth.currentUser
                 )
+                _userState.value = UserState.from(refreshed)
             } else {
                 _authState.value = _authState.value.copy(
                     isLoading = false,
@@ -165,9 +178,33 @@ class AuthViewModel : ViewModel() {
     fun logout() {
         signOut(auth)
         _authState.value = AuthState()
+        _userState.value = UserState()
     }
 
     fun resetError() {
         _authState.value = _authState.value.copy(error = null)
+    }
+
+    fun updatePreferences(interests: List<String>, classes: List<String>) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            _authState.update { it.copy(error = "User not authenticated") }
+            return
+        }
+
+        viewModelScope.launch {
+            _authState.update { it.copy(isLoading = true) }
+
+            val preferences = UserPreferences(interests, classes)
+            val document = Firebase.firestore.collection("users").document(uid)
+            val data = hashMapOf(
+                "interests" to preferences.interests,
+                "classes" to preferences.classes
+            )
+            document.set(data, SetOptions.merge()).await()
+            _authState.update { it.copy(isLoading = false) }
+            _userState.update { it.copy(preferences = preferences) }
+
+        }
     }
 }
