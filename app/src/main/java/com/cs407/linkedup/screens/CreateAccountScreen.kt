@@ -44,7 +44,8 @@ fun pageTitle(){
 @Composable
 fun emailField(
     email: String,
-    onEmailChange: (String) -> Unit
+    onEmailChange: (String) -> Unit,
+    enabled: Boolean = true
 ){
     OutlinedTextField(
         value = email,
