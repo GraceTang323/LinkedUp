@@ -3,7 +3,6 @@ package com.cs407.linkedup.viewmodels
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
-import androidx.compose.runtime.MutableState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.FusedLocationProviderClient
