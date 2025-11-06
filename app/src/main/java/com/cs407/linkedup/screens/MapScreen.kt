@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,7 +24,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
@@ -78,7 +81,7 @@ fun MapScreen(
         uiState.currentLocation?.let { location ->
             cameraPositionState.position = CameraPosition.fromLatLngZoom(
                 location,
-                12f,
+                16f,
             )
         }
     }
@@ -87,11 +90,13 @@ fun MapScreen(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState
     ) {
+
         LaunchedEffect(uiState.currentLocation) {
             Log.d("MapScreen", "Current Location: ${uiState.currentLocation}, " +
                     "Error: ${uiState.error}")
         }
 
+        // Display the user's marker on the map
         uiState.currentLocation?.let { location ->
             MarkerComposable(
                 state = MarkerState(position = location),
@@ -109,6 +114,37 @@ fun MapScreen(
                                 shape = CircleShape
                             )
                     )
+                }
+            )
+        }
+        // Display nearby student markers
+        viewModel.mockStudents.forEach { student ->
+            MarkerComposable(
+                state = MarkerState(position = student.location),
+                content = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .background(
+                                    Color(0xFF4285F4),
+                                    shape = CircleShape
+                                )
+                                .border(
+                                    width = 3.dp,
+                                    color = Color.White,
+                                    shape = CircleShape
+                                )
+                        )
+                        Text(
+                            text = student.name,
+                            color = Color.Black,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             )
         }
