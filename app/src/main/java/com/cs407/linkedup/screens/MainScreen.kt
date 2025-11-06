@@ -90,6 +90,7 @@ fun MainScreen() {
             composable("create_account") { CreateAccountScreen(
                 onCreateAccountClick = { navController.navigate("home") }
             ) }
+            composable("create_profile") { }
             composable("home") { MapScreen() }
             composable("chat") { ChatsScreenPlaceholder() }
             composable("settings") { SettingsScreenPlaceholder() }

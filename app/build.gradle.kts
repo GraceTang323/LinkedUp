@@ -53,6 +53,9 @@ dependencies {
     // Google Maps Compose widgets library
     implementation("com.google.maps.android:maps-compose-widgets:$mapsComposeVersion")
 
+    //API for loading images, should work with loading image from user's phone
+    implementation ("io.coil-kt:coil-compose:2.4.0")
+
     // Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
     // Other Firebase dependencies
