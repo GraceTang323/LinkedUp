@@ -58,8 +58,9 @@ fun interestBox(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun PreferencesScreen(
-    viewModel: AuthViewModel,
-    onBackClick: () -> Unit
+    //viewModel: AuthViewModel,
+    onBackClick: () -> Unit,
+    onSaveClick: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -78,8 +79,7 @@ fun PreferencesScreen(
         bottomBar = { BottomAppBar(
 
         ){
-            Button(onClick = {
-            }) {
+            Button(onClick = onSaveClick) {
                 Text(text = "Save")
             }
         } }

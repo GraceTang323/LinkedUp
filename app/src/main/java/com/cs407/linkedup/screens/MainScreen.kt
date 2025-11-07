@@ -94,8 +94,12 @@ fun MainScreen() {
                 //TODO: PLACEHOLDER FUNCTIONS MUST BE REPLACED
                 hasPhotoAccess = { true },
                 requestPhotoAccess = { },
-                onNextButtonClick = { navController.navigate("home") }
+                onNextButtonClick = { navController.navigate("preferences_screen") }
             ) }
+            composable("preferences_screen") { PreferencesScreen(
+                onBackClick = {navController.navigate("create_profile") },
+                    onSaveClick = { navController.navigate("home") }
+                ) }
             composable("home") { MapScreen() }
             composable("chat") { ChatsScreenPlaceholder() }
             composable("settings") { SettingsScreenPlaceholder() }
