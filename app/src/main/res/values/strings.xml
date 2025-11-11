@@ -7,6 +7,7 @@
     <string name="create_prompt">Create one</string>
     <string name="login_button">Login</string>
     <string name="create_button">Create Account</string>
+    <string name="back_to_login">Go Back to Login</string>
     <string name="sign_in">SIGN IN</string>
     <string name="create_profile">Create Your Profile</string>
     <string name="change_picture">Choose Picture</string>
@@ -17,5 +18,11 @@
     <string name="major_placeholder">Computer Science</string>
     <string name="bio_placeholder">I think Buckingham is the best...</string>
     <string name="next">Next</string>
+    <string name="delete_button">Delete Account</string>
+    <string name="logout_button">Log Out</string>
+    <string name="delete_title">Delete Account?</string>
+    <string name="delete_text">This will permanently delete your data and cannot be undone.</string>
+    <string name="confirm_button">Confirm</string>
+    <string name="cancel_button">Cancel</string>
 
 </resources>

@@ -106,7 +106,7 @@ fun userPassword(
             else
                 Icons.Default.VisibilityOff
             IconButton( onClick = { passwordVisible = !passwordVisible } ){
-                Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show pasword" )
+                Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show password" )
             }
         }
     )

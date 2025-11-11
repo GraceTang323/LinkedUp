@@ -119,7 +119,8 @@ fun MainScreen(
             }
             composable("create_account") {
                 CreateAccountScreen(
-                    onCreateAccountSuccess = { navController.navigate("create_profile") }
+                    onCreateAccountSuccess = { navController.navigate("create_profile") },
+                    onBackClick = { navController.navigate("login") }
                 )
             }
             composable("create_profile") {
@@ -141,8 +142,12 @@ fun MainScreen(
             composable("settings") { SettingsScreenPlaceholder() }
             composable("profile") {
                 ProfileScreen(
-                    onLogout = { navController.navigate("login") },
-                    onDelete = { navController.navigate("login") }
+                    onLogout = {
+                        navController.navigate("login")
+                               },
+                    onDelete = {
+                        navController.navigate("login")
+                    }
                 )
             }
         }

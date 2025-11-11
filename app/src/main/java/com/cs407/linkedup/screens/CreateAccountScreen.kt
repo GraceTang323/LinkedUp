@@ -1,5 +1,6 @@
 package com.cs407.linkedup.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement.Absolute.spacedBy
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -84,7 +85,7 @@ fun passwordField(
             else
                 Icons.Default.VisibilityOff
             IconButton( onClick = { passwordVisible = !passwordVisible } ){
-                Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show pasword" )
+                Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show password" )
             }
         }
     )
@@ -113,7 +114,7 @@ fun passwordConfirmField(
             else
                 Icons.Default.VisibilityOff
             IconButton( onClick = { passwordVisible = !passwordVisible } ){
-                Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show pasword" )
+                Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show password" )
             }
         }
     )
@@ -136,7 +137,8 @@ fun AccountButton(
 @Composable
 fun CreateAccountScreen(
     viewModel: AuthViewModel = viewModel(),
-    onCreateAccountSuccess: () -> Unit
+    onCreateAccountSuccess: () -> Unit,
+    onBackClick: () -> Unit
 ){
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -159,12 +161,17 @@ fun CreateAccountScreen(
             verticalArrangement = spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
 
-        ){
+        ) {
             Spacer(modifier = Modifier.height(200.dp))
             pageTitle()
             emailField(email, { input -> email = input })
             passwordField(password, { input -> password = input })
             passwordConfirmField(passwordConfirm, { input -> passwordConfirm = input })
+            Text(
+                text = stringResource(R.string.back_to_login),
+                color = Color.Blue,
+                modifier = Modifier.clickable { onBackClick() }
+            )
 
             // errors, if any
             if (authState.error != null) {
@@ -181,7 +188,6 @@ fun CreateAccountScreen(
             AccountButton(onCreateAccountClick = {
                 viewModel.createAccount(email, password, passwordConfirm)
             })
-
 
         }
     }
