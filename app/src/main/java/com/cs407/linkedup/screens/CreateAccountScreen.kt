@@ -12,12 +12,15 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,7 +34,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.linkedup.R
+import com.cs407.linkedup.viewmodels.AuthViewModel
 
 @Composable
 fun pageTitle(){
@@ -115,7 +120,7 @@ fun passwordConfirmField(
 }
 
 @Composable
-fun createAccountButton(
+fun AccountButton(
     onCreateAccountClick: () -> Unit
 ){
     Button(
@@ -130,13 +135,21 @@ fun createAccountButton(
 }
 @Composable
 fun CreateAccountScreen(
-    onCreateAccountClick: () -> Unit
-    //This function will need some type of function that authorizes the user's account
+    viewModel: AuthViewModel = viewModel(),
+    onCreateAccountSuccess: () -> Unit
 ){
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordConfirm by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf("") }
+
+    val authState by viewModel.authState.collectAsState()
+
+    // observe when Firebase user successfully registers
+    LaunchedEffect(authState.currentUser) {
+        if (authState.currentUser != null) {
+            onCreateAccountSuccess()
+        }
+    }
 
     Scaffold { innerPadding ->
         Column(
@@ -152,7 +165,22 @@ fun CreateAccountScreen(
             emailField(email, { input -> email = input })
             passwordField(password, { input -> password = input })
             passwordConfirmField(passwordConfirm, { input -> passwordConfirm = input })
-            createAccountButton(onCreateAccountClick)
+
+            // errors, if any
+            if (authState.error != null) {
+                Text(
+                    text = authState.error ?: "",
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+            // loading indicator while signing in?
+            if (authState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+            }
+            AccountButton(onCreateAccountClick = {
+                viewModel.createAccount(email, password, passwordConfirm)
+            })
 
 
         }

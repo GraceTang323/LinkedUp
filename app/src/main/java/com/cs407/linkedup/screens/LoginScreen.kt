@@ -16,12 +16,15 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,12 +38,16 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cs407.linkedup.R
+import com.cs407.linkedup.viewmodels.AuthViewModel
+
 @Composable
 fun appTitle(){
     Text(
@@ -123,7 +130,7 @@ fun createAccountPrompt(
 }
 
 @Composable
-fun createLoginButton(
+fun LoginButton(
     onLoginClick: () -> Unit
     //This function will need onLoginAttempt() as a param
 ) {
@@ -142,15 +149,20 @@ fun createLoginButton(
 }
 @Composable
 fun LoginScreen (
-    // This function should take the following parameters, but I'm not sure how we want to implement them
-//    onLoginAttempt: () -> Unit,
-//    onCreateAttempt: () -> Unit
     onCreateAccountClick: () -> Unit,
-    onLoginClick: () -> Unit
+    onLoginSuccess: () -> Unit,
+    viewModel: AuthViewModel = viewModel()
 ){
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("")}
-    var error by remember { mutableStateOf("") }
+
+    val authState by viewModel.authState.collectAsState() // observe auth state changes
+
+    LaunchedEffect(authState.isSuccess) {
+        if (authState.isSuccess && authState.currentUser != null) {
+            onLoginSuccess()
+        }
+    }
 
     Scaffold { innerPadding ->
         Column(
@@ -166,13 +178,27 @@ fun LoginScreen (
             Spacer(modifier = Modifier.height(20.dp))
             userEmail(email, { input -> email = input })
             userPassword(password, { input -> password = input } )
+
+            // error message if any
+            if (authState.error != null) {
+                Text(
+                    text = authState.error ?: "",
+                    color = Color.Red,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+            // loading indicator while signing in?
+            if (authState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+            }
+
             createAccountPrompt(onCreateAccountClick)
             Spacer(modifier = Modifier.height(5.dp))
-            createLoginButton(onLoginClick)
-
-
-
-
+            // Login button
+            LoginButton(onLoginClick = {
+                viewModel.login(email, password)
+            })
         }
     }
 }

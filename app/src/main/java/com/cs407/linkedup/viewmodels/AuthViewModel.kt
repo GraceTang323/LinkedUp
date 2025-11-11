@@ -181,6 +181,24 @@ class AuthViewModel : ViewModel() {
         _userState.value = UserState()
     }
 
+    fun deleteAccount() {
+        viewModelScope.launch {
+            val user = auth.currentUser
+            if (user == null) {
+                _authState.value = _authState.value.copy(error = "No user signed in")
+                return@launch
+            }
+
+            try {
+                user.delete().await()
+                _authState.value = AuthState() // Clear auth state
+                _userState.value = UserState() // Clear user state
+            } catch (e: Exception) {
+                _authState.value = _authState.value.copy(error = e.message ?: "Failed to delete user account")
+            }
+        }
+    }
+
     fun resetError() {
         _authState.value = _authState.value.copy(error = null)
     }

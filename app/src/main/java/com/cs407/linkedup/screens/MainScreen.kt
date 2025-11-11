@@ -19,20 +19,32 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.cs407.linkedup.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
-    val navController = rememberNavController()
+fun MainScreen(
+    viewModel: AuthViewModel = viewModel(),
+    navController: NavHostController = rememberNavController()
+) {
+    val authState by viewModel.authState.collectAsState()
+
+    val startDestination = if (authState.currentUser == null) "login" else "home"
     val currentDestination by navController.currentBackStackEntryAsState()
     val currentRoute = currentDestination?.destination?.route
 
@@ -46,6 +58,18 @@ fun MainScreen() {
         "settings" -> "Settings"
         "profile" -> "Profile"
         else -> "LinkedUp"
+    }
+
+    LaunchedEffect(authState.currentUser) {
+        if (authState.currentUser == null) {
+            navController.navigate("login") {
+                popUpTo(0) // clear back stack
+            }
+        } else {
+            navController.navigate("home") {
+                popUpTo(0) // clear back stack
+            }
+        }
     }
 
     Scaffold(
@@ -80,30 +104,47 @@ fun MainScreen() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "login",
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("login"){ LoginScreen(
-                onCreateAccountClick = { navController.navigate("create_account") },
-                onLoginClick = { navController.navigate("home")}
-                ) }
-            composable("create_account") { CreateAccountScreen(
-                onCreateAccountClick = { navController.navigate("create_profile") }
-            ) }
-            composable("create_profile") { CreateProfileScreen(
-                //TODO: PLACEHOLDER FUNCTIONS MUST BE REPLACED
-                hasPhotoAccess = { true },
-                requestPhotoAccess = { },
-                onNextButtonClick = { navController.navigate("preferences_screen") }
-            ) }
-            composable("preferences_screen") { PreferencesScreen(
-                onBackClick = {navController.navigate("create_profile") },
+            composable("login") {
+                LoginScreen(
+                    onCreateAccountClick = { navController.navigate("create_account") },
+                    onLoginSuccess = {
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable("create_account") {
+                CreateAccountScreen(
+                    onCreateAccountSuccess = { navController.navigate("create_profile") }
+                )
+            }
+            composable("create_profile") {
+                CreateProfileScreen(
+                    //TODO: PLACEHOLDER FUNCTIONS MUST BE REPLACED
+                    hasPhotoAccess = { true },
+                    requestPhotoAccess = { },
+                    onNextButtonClick = { navController.navigate("preferences_screen") }
+                )
+            }
+            composable("preferences_screen") {
+                PreferencesScreen(
+                    onBackClick = {navController.navigate("create_profile") },
                     onSaveClick = { navController.navigate("home") }
-                ) }
+                )
+            }
             composable("home") { MapScreen() }
             composable("chat") { ChatsScreenPlaceholder() }
             composable("settings") { SettingsScreenPlaceholder() }
-            composable("profile") { ProfileScreenPlaceholder() }
+            composable("profile") {
+                ProfileScreen(
+                    onLogout = { navController.navigate("login") },
+                    onDelete = { navController.navigate("login") }
+                )
+            }
         }
     }
 }
