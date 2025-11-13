@@ -131,7 +131,7 @@ fun MainScreen(
                     //TODO: PLACEHOLDER FUNCTIONS MUST BE REPLACED
                     hasPhotoAccess = { true },
                     requestPhotoAccess = { },
-                    onNextButtonClick = { navController.navigate("preferences_screen") }
+                    onCreateProfileSuccess = { navController.navigate("preferences_screen") }
                 )
             }
             composable("preferences_screen") {

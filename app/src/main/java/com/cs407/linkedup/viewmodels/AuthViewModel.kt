@@ -1,5 +1,6 @@
 package com.cs407.linkedup.viewmodels
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -153,12 +154,14 @@ class AuthViewModel : ViewModel() {
                     val uid = user?.uid ?: return@launch
 
                     // Create a new user with email field initialized
-                    // TODO: initialize phone_number field once implemented as well
+                    // TODO: add phone_number field once implemented as well
+                    // TODO: add contacts field once implemented
                     val userData = hashMapOf(
                         "name" to null,
                         "email" to email,
                         "phone_number" to -1,
                         "major" to null,
+                        "bio" to null,
                         "location" to mapOf("lat" to -1, "lng" to -1),
                         "interests" to emptyList<String>(),
                         "classes" to emptyList<String>()
@@ -181,6 +184,42 @@ class AuthViewModel : ViewModel() {
                     )
                 }
             }
+        }
+    }
+
+    // TODO: Add image upload functionality
+    // DO NOT upload the image to FireStore db, since it often exceeds byte limits
+    fun saveProfile(name: String, major: String, bio: String, phoneNumber: String) {
+        if (phoneNumber.isBlank()) {
+            _authState.value = _authState.value.copy(error = "Please enter a valid phone number")
+            return
+        }
+        else if (name.isBlank()) {
+            _authState.value = _authState.value.copy(error = "Please specify a name")
+            return
+        }
+        else if (major.isBlank()) {
+            _authState.value = _authState.value.copy(error = "Please specify a major, or \n'Undecided' if not applicable")
+            return
+        }
+        viewModelScope.launch {
+            _authState.value = _authState.value.copy(isLoading = true, error = null)
+
+            val uid = auth.currentUser?.uid ?: return@launch
+            db.collection("users").document(uid)
+                .update(
+                    "name", name,
+                    "major", major,
+                    "bio", bio,
+                    "phone_number", phoneNumber
+                )
+                .addOnSuccessListener {
+                    Log.d("SaveProfile", "User profile data updated with ID: $uid")
+                }
+                .addOnFailureListener { e ->
+                    Log.w("SaveProfile", "Error updating document", e)
+                }
+            _authState.value = _authState.value.copy(isLoading = false, error = null)
         }
     }
 
