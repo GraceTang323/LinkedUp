@@ -5,6 +5,7 @@ import android.content.Context
 import android.location.Location
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cs407.linkedup.repo.UserRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
@@ -27,6 +28,8 @@ data class MapState(
     val markers: List<LatLng> = emptyList(),
     // Stores the user's most recent location (if available)
     val currentLocation: LatLng? = null,
+    // Stores the user's chosen location
+    val selectedLocation: LatLng? = null,
     // Tracks whether location permissions are granted
     val locationPermissionGranted: Boolean = false,
     // Indicates when location or map data is being loaded
@@ -35,7 +38,9 @@ data class MapState(
     val error: String? = null,
 )
 
-class MapViewModel: ViewModel() {
+class MapViewModel(
+    private val repository: UserRepository
+): ViewModel() {
     // Backing property for state: MutableStateFlow lets us update data internally
     private val _uiState = MutableStateFlow(MapState())
 
@@ -58,6 +63,56 @@ class MapViewModel: ViewModel() {
     // Initializes the location client when a valid Context becomes available
     fun initializeLocationClient(context: Context) {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    }
+
+    fun setSelectedLocation(location: LatLng) {
+        _uiState.value = _uiState.value.copy(
+            selectedLocation = location,
+            error = null
+        )
+    }
+
+    // Saves the location remotely to FireStore
+    fun confirmSelectedLocation() {
+        val selected = _uiState.value.selectedLocation ?: return
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                // upload to Firestore
+                repository.saveUserLocation(selected)
+
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }
+        }
+    }
+
+    // Retrieves the user's location from FireStore
+    fun loadUserLocation() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                val location = repository.getUserLocation()
+                _uiState.value = _uiState.value.copy(
+                    selectedLocation = location,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }
+        }
+    }
+
+    // Clears the selected location
+    fun resetSelection() {
+        _uiState.value = _uiState.value.copy( selectedLocation = null )
     }
 
     @SuppressLint("MissingPermission")

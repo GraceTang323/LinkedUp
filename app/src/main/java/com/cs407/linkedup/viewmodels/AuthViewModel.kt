@@ -1,14 +1,24 @@
 package com.cs407.linkedup.viewmodels
 
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cs407.linkedup.auth.*
+import com.cs407.linkedup.auth.AuthResult
+import com.cs407.linkedup.auth.EmailResult
+import com.cs407.linkedup.auth.PasswordResult
+import com.cs407.linkedup.auth.UserState
+import com.cs407.linkedup.auth.checkEmail
+import com.cs407.linkedup.auth.checkPassword
+import com.cs407.linkedup.auth.createAccount
+import com.cs407.linkedup.auth.signIn
+import com.cs407.linkedup.auth.signOut
+import com.cs407.linkedup.auth.updateName
 import com.cs407.linkedup.data.UserPreferences
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
-import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -24,6 +34,7 @@ data class AuthState(
 
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState
@@ -133,11 +144,39 @@ class AuthViewModel : ViewModel() {
 
             when (val result = createAccount(email, password, auth)) {
                 is AuthResult.Success -> {
+                    val user = result.user
                     _authState.value = AuthState(
                         isSuccess = true,
-                        currentUser = result.user
+                        currentUser = user
                     )
-                    _userState.value = UserState.from(result.user)
+                    _userState.value = UserState.from(user)
+
+                    val uid = user?.uid ?: return@launch
+
+                    // Create a new user with email field initialized
+                    // TODO: add phone_number field once implemented as well
+                    // TODO: add contacts field once implemented
+                    val userData = hashMapOf(
+                        "name" to null,
+                        "email" to email,
+                        "phone_number" to -1,
+                        "major" to null,
+                        "bio" to null,
+                        "location" to mapOf("lat" to -1, "lng" to -1),
+                        "interests" to emptyList<String>(),
+                        "classes" to emptyList<String>()
+                    )
+
+                    // Add to FireStore database, using user UID as document ID
+                    db.collection("users")
+                        .document(uid)
+                        .set(userData)
+                        .addOnSuccessListener {
+                            Log.d("CreateAccount", "User data added with ID: $uid")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.w("CreateAccount", "Error adding document", e)
+                        }
                 }
                 is AuthResult.Error -> {
                     _authState.value = AuthState(
@@ -145,6 +184,42 @@ class AuthViewModel : ViewModel() {
                     )
                 }
             }
+        }
+    }
+
+    // TODO: Add image upload functionality
+    // DO NOT upload the image to FireStore db, since it often exceeds byte limits
+    fun saveProfile(name: String, major: String, bio: String, phoneNumber: String) {
+        if (phoneNumber.isBlank()) {
+            _authState.value = _authState.value.copy(error = "Please enter a valid phone number")
+            return
+        }
+        else if (name.isBlank()) {
+            _authState.value = _authState.value.copy(error = "Please specify a name")
+            return
+        }
+        else if (major.isBlank()) {
+            _authState.value = _authState.value.copy(error = "Please specify a major, or \n'Undecided' if not applicable")
+            return
+        }
+        viewModelScope.launch {
+            _authState.value = _authState.value.copy(isLoading = true, error = null)
+
+            val uid = auth.currentUser?.uid ?: return@launch
+            db.collection("users").document(uid)
+                .update(
+                    "name", name,
+                    "major", major,
+                    "bio", bio,
+                    "phone_number", phoneNumber
+                )
+                .addOnSuccessListener {
+                    Log.d("SaveProfile", "User profile data updated with ID: $uid")
+                }
+                .addOnFailureListener { e ->
+                    Log.w("SaveProfile", "Error updating document", e)
+                }
+            _authState.value = _authState.value.copy(isLoading = false, error = null)
         }
     }
 
@@ -188,11 +263,23 @@ class AuthViewModel : ViewModel() {
                 _authState.value = _authState.value.copy(error = "No user signed in")
                 return@launch
             }
+            val uid = user.uid
 
             try {
+                // Delete user from Firebase Authentication
                 user.delete().await()
                 _authState.value = AuthState() // Clear auth state
                 _userState.value = UserState() // Clear user state
+
+                // Delete user from Firestore Database
+                db.collection("users").document(uid)
+                    .delete()
+                    .addOnSuccessListener {
+                        Log.d("DeleteAccount", "User data deleted with ID: $uid")
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.w("DeleteAccount", "Error deleting Firestore document", exception)
+                    }
             } catch (e: Exception) {
                 _authState.value = _authState.value.copy(error = e.message ?: "Failed to delete user account")
             }
@@ -214,12 +301,17 @@ class AuthViewModel : ViewModel() {
             _authState.update { it.copy(isLoading = true) }
 
             val preferences = UserPreferences(interests, classes)
-            val document = Firebase.firestore.collection("users").document(uid)
+
+            val document = db.collection("users").document(uid)
             val data = hashMapOf(
                 "interests" to preferences.interests,
                 "classes" to preferences.classes
             )
-            document.set(data, SetOptions.merge()).await()
+            document.set(data, SetOptions.merge())
+                .addOnFailureListener { e ->
+                    Log.w("UpdatePreferences", "Error updating user preferences.", e)
+                }
+                .await()
             _authState.update { it.copy(isLoading = false) }
             _userState.update { it.copy(preferences = preferences) }
 

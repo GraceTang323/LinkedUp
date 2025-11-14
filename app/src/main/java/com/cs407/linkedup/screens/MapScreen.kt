@@ -28,13 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.cs407.linkedup.viewmodels.MapViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -45,40 +42,24 @@ import com.google.maps.android.compose.rememberCameraPositionState
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(
-    viewModel: MapViewModel = viewModel()
+    viewModel: MapViewModel
 ) {
     // Automatically updates UI whenever data changes
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Gets a mutable state object that reflects the status of the location permission
-    val locationPermissionState = rememberPermissionState(
-        permission = android.Manifest.permission.ACCESS_FINE_LOCATION
-    )
-
-    val context = LocalContext.current
-    LaunchedEffect(locationPermissionState.status.isGranted) {
-        // Check for permission status
-        if (locationPermissionState.status.isGranted) {
-            viewModel.updateLocationPermission(true)
-            viewModel.initializeLocationClient(context)
-            viewModel.getCurrentLocation()
-        } else {
-            // Request permission
-            locationPermissionState.launchPermissionRequest()
-        }
-    }
     // Define a default location for the map to load to before the user's location is obtained
     val defaultLocation = LatLng(43.0731, -89.4012)
 
     // Remembers camera position state so it persists upon recompositions
     val cameraPositionState = rememberCameraPositionState {
         // Sets the initial position and zoom level of the map
-        position = CameraPosition.fromLatLngZoom(defaultLocation, 12f)
+        position = CameraPosition.fromLatLngZoom(defaultLocation, 16f)
     }
 
-    // Updates the camera position to reflect the user's current location
-    LaunchedEffect(uiState.currentLocation) {
-        uiState.currentLocation?.let { location ->
+    // Updates the camera position to reflect the user's selected location
+    LaunchedEffect(uiState.selectedLocation) {
+        viewModel.loadUserLocation()
+        uiState.selectedLocation?.let { location ->
             cameraPositionState.position = CameraPosition.fromLatLngZoom(
                 location,
                 16f,
@@ -91,13 +72,13 @@ fun MapScreen(
         cameraPositionState = cameraPositionState
     ) {
 
-        LaunchedEffect(uiState.currentLocation) {
-            Log.d("MapScreen", "Current Location: ${uiState.currentLocation}, " +
+        LaunchedEffect(uiState.selectedLocation) {
+            Log.d("MapScreen", "Selected Location: ${uiState.selectedLocation}, " +
                     "Error: ${uiState.error}")
         }
 
-        // Display the user's marker on the map
-        uiState.currentLocation?.let { location ->
+        // Display the user's chosen location on the map
+        uiState.selectedLocation?.let { location ->
             MarkerComposable(
                 state = MarkerState(position = location),
                 content = {

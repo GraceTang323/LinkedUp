@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,6 +32,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,8 +47,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.cs407.linkedup.R
+import com.cs407.linkedup.viewmodels.AuthViewModel
 
 @Composable
 fun headerText(){
@@ -175,6 +180,40 @@ fun bioTextField(
     )
 }
 
+// Format phone number into a string for storage
+fun stringifyPhoneNumber(digits: String): String {
+    val filtered = digits.filter { it.isDigit() }
+    return if (filtered.length >= 10) "+1$filtered" else "+$filtered"
+}
+
+// Format phone number for UI display
+fun formatPhoneNumber(digits: String): String {
+    if (digits.length >= 10) {
+        return "(${digits.take(3)}) ${digits.substring(3,6)}-${digits.substring(6,10)}"
+    } else {
+        return digits
+    }
+}
+
+@Composable
+fun PhoneNumberField(
+    number: String,
+    onNumberChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = number,
+        onValueChange = { input ->
+            val digits = input.filter { it.isDigit() }
+            val formatted = formatPhoneNumber(digits)
+            onNumberChange(formatted)
+        },
+        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = "Phone", tint = Color.LightGray)},
+        label = { Text("Cell Number") },
+        singleLine = true,
+        modifier = Modifier.width(280.dp),
+    )
+}
+
 @Composable
 fun nextButton(
     onButtonClick: () -> Unit
@@ -195,15 +234,17 @@ fun nextButton(
 }
 @Composable
 fun CreateProfileScreen(
-    //
+    viewModel: AuthViewModel = viewModel(),
     hasPhotoAccess: () -> Boolean,
     requestPhotoAccess: () -> Unit,
-    onNextButtonClick: () -> Unit,
+    onCreateProfileSuccess: () -> Unit,
 ) {
+    val authState by viewModel.authState.collectAsState()
+
     var name by remember{ mutableStateOf("") }
     var major by remember{ mutableStateOf("") }
     var bio by remember{ mutableStateOf("") }
-    var error by remember{ mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
 
     //Variable for the user chosen image
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -213,6 +254,13 @@ fun CreateProfileScreen(
         contract = ActivityResultContracts.GetContent()
     ){ uri: Uri? ->
         imageUri = uri
+    }
+
+    // observe and navigate to the next screen only when no errors are present
+    LaunchedEffect(authState.error) {
+        if (authState.error == null && name != "" && major != "" && phoneNumber != "") {
+            onCreateProfileSuccess()
+        }
     }
 
     Scaffold(){ innerPadding ->
@@ -231,16 +279,24 @@ fun CreateProfileScreen(
                 hasPhotoAccess = hasPhotoAccess,
                 requestPhotoAccess = requestPhotoAccess
                 )
+            PhoneNumberField(phoneNumber, { input -> phoneNumber = input })
             nameTextField(name, { input -> name = input })
             majorTextField(major, { input -> major = input })
             bioTextField(bio, { input -> bio = input })
-            nextButton(onButtonClick = { onNextButtonClick() })
 
+            // errors, if any
+            if (authState.error != null) {
+                Text(
+                    text = authState.error ?: "",
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
 
-
-
-
-
+            nextButton(onButtonClick = {
+                // Add name, major, and bio to FireStore
+                viewModel.saveProfile(name, major, bio, stringifyPhoneNumber(phoneNumber))
+            })
         }
     }
 }

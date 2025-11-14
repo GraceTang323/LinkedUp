@@ -22,11 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -34,15 +33,19 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.cs407.linkedup.repo.UserRepository
 import com.cs407.linkedup.viewmodels.AuthViewModel
+import com.cs407.linkedup.viewmodels.MapViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    viewModel: AuthViewModel = viewModel(),
+    repository: UserRepository,
+    authViewModel: AuthViewModel = viewModel(),
     navController: NavHostController = rememberNavController()
 ) {
-    val authState by viewModel.authState.collectAsState()
+    val mapViewModel = remember { MapViewModel(repository) }
+    val authState by authViewModel.authState.collectAsState()
 
     val startDestination = if (authState.currentUser == null) "login" else "home"
     val currentDestination by navController.currentBackStackEntryAsState()
@@ -128,16 +131,24 @@ fun MainScreen(
                     //TODO: PLACEHOLDER FUNCTIONS MUST BE REPLACED
                     hasPhotoAccess = { true },
                     requestPhotoAccess = { },
-                    onNextButtonClick = { navController.navigate("preferences_screen") }
+                    onCreateProfileSuccess = { navController.navigate("preferences_screen") }
                 )
             }
             composable("preferences_screen") {
                 PreferencesScreen(
                     onBackClick = {navController.navigate("create_profile") },
-                    onSaveClick = { navController.navigate("home") }
+                    onSaveClick = { navController.navigate("select_location") } // move on to select location
                 )
             }
-            composable("home") { MapScreen() }
+            composable("select_location") {
+                SelectLocationScreen(
+                    viewModel = mapViewModel,
+                    onLocationConfirm = { latLng ->
+                        navController.navigate("home")
+                    }
+                )
+            }
+            composable("home") { MapScreen(viewModel = mapViewModel) }
             composable("chat") { ChatsScreenPlaceholder() }
             composable("settings") { SettingsScreenPlaceholder() }
             composable("profile") {
@@ -219,15 +230,5 @@ fun SettingsScreenPlaceholder() {
         contentAlignment = Alignment.Center
     ) {
         Text("Settings Screen Coming Soon")
-    }
-}
-
-@Composable
-fun ProfileScreenPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Profile Screen Coming Soon")
     }
 }

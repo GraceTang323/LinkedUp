@@ -24,5 +24,7 @@
     <string name="delete_text">This will permanently delete your data and cannot be undone.</string>
     <string name="confirm_button">Confirm</string>
     <string name="cancel_button">Cancel</string>
+    <string name="location_title">Plot Your Next Meetup!</string>"
+    <string name="location_body">Because great plans start with great spots</string>
 
 </resources>
