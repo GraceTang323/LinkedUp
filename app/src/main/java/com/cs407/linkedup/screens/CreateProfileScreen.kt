@@ -252,15 +252,8 @@ fun CreateProfileScreen(
     //Launcher that will prompt the user to choose an image when launcher.launch is called
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ){ uri: Uri? ->
+    ) { uri: Uri? ->
         imageUri = uri
-    }
-
-    // observe and navigate to the next screen only when no errors are present
-    LaunchedEffect(authState.error) {
-        if (authState.error == null && name != "" && major != "" && phoneNumber != "") {
-            onCreateProfileSuccess()
-        }
     }
 
     Scaffold(){ innerPadding ->
@@ -295,7 +288,10 @@ fun CreateProfileScreen(
 
             nextButton(onButtonClick = {
                 // Add name, major, and bio to FireStore
-                viewModel.saveProfile(name, major, bio, stringifyPhoneNumber(phoneNumber))
+                if (authState.error == null && name != "" && major != "" && phoneNumber != "") {
+                    viewModel.saveProfile(name, major, bio, stringifyPhoneNumber(phoneNumber))
+                    onCreateProfileSuccess()
+                }
             })
         }
     }
