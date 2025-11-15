@@ -19,6 +19,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -52,12 +53,14 @@ import com.cs407.linkedup.viewmodels.AuthViewModel
 fun appTitle(){
     Text(
         buildAnnotatedString {
-            append("LINKED")
-            withStyle(style = SpanStyle(color = Color.Green)){
+            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.secondary)) {
+                append("LINKED")
+            }
+            withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)){
                 append("UP")
             }
         },
-        fontSize = 36.sp,
+        fontSize = 48.sp,
         fontWeight = FontWeight.Bold
     )
 }
@@ -123,7 +126,7 @@ fun createAccountPrompt(
         )
         Text(
             text = stringResource(id = R.string.create_prompt),
-            color = Color.Blue,
+            color = Color(0xFF1E88E5),
             modifier = Modifier.clickable { onCreateAccountClick() }
         )
     }
@@ -136,7 +139,7 @@ fun LoginButton(
 ) {
     Button(
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Green,
+            containerColor = MaterialTheme.colorScheme.primary,
             contentColor = Color.Black
         ),
         onClick = onLoginClick,
@@ -164,7 +167,9 @@ fun LoginScreen (
         }
     }
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
