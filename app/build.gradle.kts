@@ -46,6 +46,8 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.material3)
+    implementation("androidx.compose.material3:material3:1.3.0")
+    implementation("androidx.compose.material3:material3-window-size-class:1.3.0")
     // Google Maps Compose Library
     val mapsComposeVersion = "4.4.1"
     implementation("com.google.maps.android:maps-compose:$mapsComposeVersion")
