@@ -153,8 +153,7 @@ class AuthViewModel : ViewModel() {
 
                     val uid = user?.uid ?: return@launch
 
-                    // Create a new user with email field initialized
-                    // TODO: add phone_number field once implemented as well
+                    // Create a new user with only the email field initialized
                     // TODO: add contacts field once implemented
                     val userData = hashMapOf(
                         "name" to null,

@@ -37,7 +37,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,9 +61,11 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.cs407.linkedup.R
 import com.cs407.linkedup.viewmodels.MapViewModel
+import com.cs407.linkedup.viewmodels.Student
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.MarkerState
@@ -83,6 +87,9 @@ fun MapScreen(
         // Sets the initial position and zoom level of the map
         position = CameraPosition.fromLatLngZoom(defaultLocation, 16f)
     }
+    // Converts Flow<List<Student>> to List<Student> so we can display them on the map
+    val students by viewModel.students.collectAsState()
+    val selectedStudent = viewModel.selectedStudent
 
     var showUserCard by remember { mutableStateOf(false) }
 
@@ -96,12 +103,12 @@ fun MapScreen(
             )
         }
     }
-    // The GoogleMap composable displays the map UI inside your Compose layout
+    // Displays the map UI
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState
     ) {
-
+        // Debugging
         LaunchedEffect(uiState.selectedLocation) {
             Log.d("MapScreen", "Selected Location: ${uiState.selectedLocation}, " +
                     "Error: ${uiState.error}")
@@ -129,39 +136,43 @@ fun MapScreen(
             )
         }
         // Display nearby student markers
-        viewModel.mockStudents.forEach { student ->
-            MarkerComposable(
-                state = MarkerState(position = student.location),
-                onClick = {
-                    showUserCard = true
-                    true // click is consumed
+        students.forEach { student ->
+            // Use unique key for each marker so old markers are not recreated with every update
+            key("${student.name}+${student.location}") {
+                MarkerComposable(
+                    state = MarkerState(position = student.location),
+                    onClick = {
+                        viewModel.selectStudent(student)
+                        showUserCard = true
+                        true // click is consumed
                     },
-                content = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .background(
-                                    Color(0xFF4285F4),
-                                    shape = CircleShape
-                                )
-                                .border(
-                                    width = 3.dp,
-                                    color = Color.White,
-                                    shape = CircleShape
-                                )
-                        )
-                        Text(
-                            text = student.name,
-                            color = Color.Black,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                    content = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .background(
+                                        Color(0xFF4285F4),
+                                        shape = CircleShape
+                                    )
+                                    .border(
+                                        width = 3.dp,
+                                        color = Color.White,
+                                        shape = CircleShape
+                                    )
+                            )
+                            Text(
+                                text = student.name,
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
 
@@ -177,6 +188,7 @@ fun MapScreen(
         ) + fadeOut()
     ) {
         UserCard(
+            student = selectedStudent,
             onCloseClick = { showUserCard = false }
         )
     }
@@ -185,8 +197,8 @@ fun MapScreen(
 @Composable
 fun UserCard(
     modifier: Modifier = Modifier,
+    student: Student?,
     onCloseClick: () -> Unit = {},
-    // add a user repo object or similar to fetch user name, major, bio, etc.
 ) {
     Card(
         modifier = modifier
@@ -221,21 +233,20 @@ fun UserCard(
             ) {
                 // Name
                 Text(
-                    text = "John Smith",
+                    text = student?.name ?: "Empty Name",
                     fontSize = 30.sp,
                     modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
                 )
                 // Major(s)
                 Text(
-                    text = "Studying: Mathematics", // TODO: change to something like "studying: ${major}"
+                    text = "Studying: ${student?.major ?: "Undecided"}",
                     fontSize = 18.sp,
                     fontStyle = FontStyle.Italic,
                     modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
                 )
                 // Bio, if provided
                 Text(
-                    text = "An English soldier, explorer, colonial governor, admiral of New England, and author. " +
-                            "Currently studying calculus at Union South",
+                    text = student?.bio ?: "Let's meet up!",
                     fontSize = 16.sp,
                     modifier = Modifier
                         .padding(start = 16.dp, bottom = 8.dp)
@@ -281,7 +292,7 @@ fun UserCard(
 @Preview
 @Composable
 fun PreviewUserCard() {
-    UserCard()
+    UserCard(student = null)
 }
 
 // Custom map marker, potentially use to display other students?
