@@ -162,7 +162,6 @@ class AuthViewModel : ViewModel() {
                         "major" to null,
                         "bio" to null,
                         "location" to mapOf("lat" to -1, "lng" to -1),
-                        "interests" to emptyList<String>(),
                         "classes" to emptyList<String>()
                     )
 

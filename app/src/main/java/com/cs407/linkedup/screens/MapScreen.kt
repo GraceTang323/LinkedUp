@@ -1,6 +1,7 @@
 package com.cs407.linkedup.screens
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,6 +75,8 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -92,6 +99,10 @@ fun MapScreen(
     val selectedStudent = viewModel.selectedStudent
 
     var showUserCard by remember { mutableStateOf(false) }
+    var showMatchDialog by remember { mutableStateOf(false) }
+
+    val isMatched by viewModel.matchStatus.collectAsState()
+    val context = LocalContext.current
 
     // Updates the camera position to reflect the user's selected location
     LaunchedEffect(uiState.selectedLocation) {
@@ -101,6 +112,26 @@ fun MapScreen(
                 location,
                 16f,
             )
+        }
+    }
+
+    LaunchedEffect(isMatched) {
+        when (isMatched) {
+            true -> {
+                // it's a match
+                showMatchDialog = true
+                viewModel.clearMatch()
+            }
+            false -> {
+                // not a match yet
+                Toast.makeText(
+                    context,
+                    "You liked ${selectedStudent?.name}",
+                    Toast.LENGTH_SHORT
+                ).show()
+                viewModel.clearMatch()
+            }
+            null -> Unit // no match, yet, do nothing
         }
     }
     // Displays the map UI
@@ -189,7 +220,20 @@ fun MapScreen(
     ) {
         UserCard(
             student = selectedStudent,
+            onLinkUpClick = {
+                Log.d("MapScreen", "Link Up button clicked")
+                viewModel.linkUp(selectedStudent!!.uid)
+                showUserCard = false
+            },
             onCloseClick = { showUserCard = false }
+        )
+    }
+
+    if (showMatchDialog) {
+        MatchDialog(
+            selectedStudent = selectedStudent,
+            onStartTalking = { showMatchDialog = false }, // TODO: Navigate to chat screen
+            onLater = { showMatchDialog = false }
         )
     }
 }
@@ -198,11 +242,12 @@ fun MapScreen(
 fun UserCard(
     modifier: Modifier = Modifier,
     student: Student?,
+    onLinkUpClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
 ) {
     Card(
         modifier = modifier
-            .fillMaxWidth() // remove for testing?
+            .fillMaxWidth()
             .padding(16.dp)
             .wrapContentHeight(),
         shape = RoundedCornerShape(16.dp),
@@ -254,10 +299,7 @@ fun UserCard(
                 )
 
                 Button(
-                    onClick = {
-                        // TODO: implement linking up logic
-                        onCloseClick()
-                    },
+                    onClick = { onLinkUpClick() },
                     colors = ButtonDefaults.buttonColors(Color(0xff209640)),
                     modifier = Modifier
                         .align(Alignment.Start)
@@ -287,6 +329,58 @@ fun UserCard(
             }
         }
     }
+}
+
+@Composable
+fun MatchDialog(
+    selectedStudent: Student?,
+    onStartTalking: () -> Unit,
+    onLater: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onLater,
+        confirmButton = {},
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+            ) {
+                Text(
+                    text = "It's a Link!",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "You and ${selectedStudent?.name} have similar interests!",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // start talking button
+                Button(
+                    onClick = onStartTalking,
+                    colors = ButtonDefaults.buttonColors(Color(0xff209640)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Start Talking")
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // maybe later button
+                Button(
+                    onClick = onLater,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Maybe Later")
+                }
+            }
+        },
+        shape = RoundedCornerShape(20.dp),
+        containerColor = MaterialTheme.colorScheme.surface
+    )
 }
 
 @Preview
