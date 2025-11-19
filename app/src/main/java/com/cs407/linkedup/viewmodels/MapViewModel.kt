@@ -3,6 +3,9 @@ package com.cs407.linkedup.viewmodels
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cs407.linkedup.repo.UserRepository
@@ -20,7 +23,9 @@ import kotlinx.coroutines.tasks.await
 data class Student(
     val name: String,
     val major: String,
-    val location: LatLng
+    val location: LatLng,
+    val bio: String = "",
+    val profilePictureUrl: String? = null // maybe use?
 )
 
 data class MapState(
@@ -49,6 +54,24 @@ class MapViewModel(
 
     // Interacts with the Google Maps SDK to retrieve location data
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    private val _students = MutableStateFlow<List<Student>>(emptyList())
+    val students = _students.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            repository.getNearbyStudents().collect { students ->
+                _students.value = students
+            }
+        }
+    }
+
+    var selectedStudent by mutableStateOf<Student?>(null)
+        private set // read only variable
+
+    fun selectStudent(student: Student) { // helper function to select a student
+        selectedStudent = student
+    }
 
     // TODO: Delete this and replace with "real" student data once database is set up
     private val _mockStudents = listOf(
