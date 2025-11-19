@@ -62,11 +62,18 @@ import com.cs407.linkedup.viewmodels.MapViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.SphericalUtil
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 
+fun distanceHelper(
+    pointOne: LatLng,
+    pointTwo: LatLng
+): Double {
+    return SphericalUtil.computeDistanceBetween(pointOne, pointTwo)
+}
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(
@@ -74,6 +81,10 @@ fun MapScreen(
 ) {
     // Automatically updates UI whenever data changes
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    //Radius that user can see other student's locations within. It is hardcoded right now
+    //but should eventually be a reference to a field in the uiState
+    val searchRadius = 10.0
 
     // Define a default location for the map to load to before the user's location is obtained
     val defaultLocation = LatLng(43.0731, -89.4012)
@@ -129,39 +140,44 @@ fun MapScreen(
             )
         }
         // Display nearby student markers
-        viewModel.mockStudents.forEach { student ->
-            MarkerComposable(
-                state = MarkerState(position = student.location),
-                onClick = {
-                    showUserCard = true
-                    true // click is consumed
-                    },
-                content = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .background(
-                                    Color(0xFF4285F4),
-                                    shape = CircleShape
+        uiState.selectedLocation?.let { location ->
+            viewModel.mockStudents.forEach { student ->
+                val distance = SphericalUtil.computeDistanceBetween(location, student.location) / 1000.0
+                if(distance < searchRadius) {
+                    MarkerComposable(
+                        state = MarkerState(position = student.location),
+                        onClick = {
+                            showUserCard = true
+                            true // click is consumed
+                        },
+                        content = {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .background(
+                                            Color(0xFF4285F4),
+                                            shape = CircleShape
+                                        )
+                                        .border(
+                                            width = 3.dp,
+                                            color = Color.White,
+                                            shape = CircleShape
+                                        )
                                 )
-                                .border(
-                                    width = 3.dp,
-                                    color = Color.White,
-                                    shape = CircleShape
+                                Text(
+                                    text = student.name,
+                                    color = Color.Black,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
-                        )
-                        Text(
-                            text = student.name,
-                            color = Color.Black,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                            }
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 
