@@ -82,7 +82,7 @@ fun MapScreen(
 
     //Radius that user can see other student's locations within. It is hardcoded right now
     //but should eventually be a reference to a field in the uiState
-    val searchRadius = 10.0
+    val searchRadius = 1.0
 
     // Define a default location for the map to load to before the user's location is obtained
     val defaultLocation = LatLng(43.0731, -89.4012)
@@ -94,6 +94,12 @@ fun MapScreen(
     }
     // Converts Flow<List<Student>> to List<Student> so we can display them on the map
     val students by viewModel.students.collectAsState()
+    val studentsInRange =
+        uiState.selectedLocation?.let { location ->
+            students.filter { student ->
+                SphericalUtil.computeDistanceBetween(student.location, location) / 1000.0 <= searchRadius
+            }
+        } ?: emptyList<Student>()
     val selectedStudent = viewModel.selectedStudent
 
     var showUserCard by remember { mutableStateOf(false) }
@@ -141,44 +147,44 @@ fun MapScreen(
             )
         }
         // Display nearby student markers
-        students.forEach { student ->
-            // Use unique key for each marker so old markers are not recreated with every update
-            key("${student.name}+${student.location}") {
-                MarkerComposable(
-                    state = MarkerState(position = student.location),
-                    onClick = {
-                        viewModel.selectStudent(student)
-                        showUserCard = true
-                        true // click is consumed
-                    },
-                    content = {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .background(
-                                        Color(0xFF4285F4),
-                                        shape = CircleShape
-                                    )
-                                    .border(
-                                        width = 3.dp,
-                                        color = Color.White,
-                                        shape = CircleShape
-                                    )
-                            )
-                            Text(
-                                text = student.name,
-                                color = Color.Black,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+            studentsInRange.forEach { student ->
+                // Use unique key for each marker so old markers are not recreated with every update
+                key("${student.name}+${student.location}") {
+                    MarkerComposable(
+                        state = MarkerState(position = student.location),
+                        onClick = {
+                            viewModel.selectStudent(student)
+                            showUserCard = true
+                            true // click is consumed
+                        },
+                        content = {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .background(
+                                            Color(0xFF4285F4),
+                                            shape = CircleShape
+                                        )
+                                        .border(
+                                            width = 3.dp,
+                                            color = Color.White,
+                                            shape = CircleShape
+                                        )
+                                )
+                                Text(
+                                    text = student.name,
+                                    color = Color.Black,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
-        }
     }
 
     // TODO: fix user card sliding all the way to the screen's height
