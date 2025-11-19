@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -104,8 +105,8 @@ fun changePictureButton(
             onButtonClick
         },
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Green,
-            contentColor = Color.Black
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = Color.White
         )
     ){
         Text(stringResource(id = R.string.change_picture))
@@ -220,6 +221,10 @@ fun nextButton(
 ){
     Button(
         onClick = onButtonClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = Color.White
+        )
 
     ){
         Row(

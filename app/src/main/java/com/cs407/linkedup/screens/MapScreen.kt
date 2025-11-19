@@ -65,6 +65,7 @@ import com.cs407.linkedup.viewmodels.Student
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.SphericalUtil
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerComposable
@@ -79,6 +80,10 @@ fun MapScreen(
     // Automatically updates UI whenever data changes
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    //Radius that user can see other student's locations within. It is hardcoded right now
+    //but should eventually be a reference to a field in the uiState
+    val searchRadius = 1.0
+
     // Define a default location for the map to load to before the user's location is obtained
     val defaultLocation = LatLng(43.0731, -89.4012)
 
@@ -89,6 +94,12 @@ fun MapScreen(
     }
     // Converts Flow<List<Student>> to List<Student> so we can display them on the map
     val students by viewModel.students.collectAsState()
+    val studentsInRange =
+        uiState.selectedLocation?.let { location ->
+            students.filter { student ->
+                SphericalUtil.computeDistanceBetween(student.location, location) / 1000.0 <= searchRadius
+            }
+        } ?: emptyList<Student>()
     val selectedStudent = viewModel.selectedStudent
 
     var showUserCard by remember { mutableStateOf(false) }
@@ -103,12 +114,12 @@ fun MapScreen(
             )
         }
     }
-    // Displays the map UI
+    // The GoogleMap composable displays the map UI inside your Compose layout
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState
     ) {
-        // Debugging
+
         LaunchedEffect(uiState.selectedLocation) {
             Log.d("MapScreen", "Selected Location: ${uiState.selectedLocation}, " +
                     "Error: ${uiState.error}")
@@ -136,44 +147,44 @@ fun MapScreen(
             )
         }
         // Display nearby student markers
-        students.forEach { student ->
-            // Use unique key for each marker so old markers are not recreated with every update
-            key("${student.name}+${student.location}") {
-                MarkerComposable(
-                    state = MarkerState(position = student.location),
-                    onClick = {
-                        viewModel.selectStudent(student)
-                        showUserCard = true
-                        true // click is consumed
-                    },
-                    content = {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .background(
-                                        Color(0xFF4285F4),
-                                        shape = CircleShape
-                                    )
-                                    .border(
-                                        width = 3.dp,
-                                        color = Color.White,
-                                        shape = CircleShape
-                                    )
-                            )
-                            Text(
-                                text = student.name,
-                                color = Color.Black,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+            studentsInRange.forEach { student ->
+                // Use unique key for each marker so old markers are not recreated with every update
+                key("${student.name}+${student.location}") {
+                    MarkerComposable(
+                        state = MarkerState(position = student.location),
+                        onClick = {
+                            viewModel.selectStudent(student)
+                            showUserCard = true
+                            true // click is consumed
+                        },
+                        content = {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .background(
+                                            Color(0xFF4285F4),
+                                            shape = CircleShape
+                                        )
+                                        .border(
+                                            width = 3.dp,
+                                            color = Color.White,
+                                            shape = CircleShape
+                                        )
+                                )
+                                Text(
+                                    text = student.name,
+                                    color = Color.Black,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
-        }
     }
 
     // TODO: fix user card sliding all the way to the screen's height
@@ -188,7 +199,6 @@ fun MapScreen(
         ) + fadeOut()
     ) {
         UserCard(
-            student = selectedStudent,
             onCloseClick = { showUserCard = false }
         )
     }
@@ -197,8 +207,8 @@ fun MapScreen(
 @Composable
 fun UserCard(
     modifier: Modifier = Modifier,
-    student: Student?,
     onCloseClick: () -> Unit = {},
+    // add a user repo object or similar to fetch user name, major, bio, etc.
 ) {
     Card(
         modifier = modifier
@@ -233,20 +243,21 @@ fun UserCard(
             ) {
                 // Name
                 Text(
-                    text = student?.name ?: "Empty Name",
+                    text = "John Smith",
                     fontSize = 30.sp,
                     modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
                 )
                 // Major(s)
                 Text(
-                    text = "Studying: ${student?.major ?: "Undecided"}",
+                    text = "Studying: Mathematics", // TODO: change to something like "studying: ${major}"
                     fontSize = 18.sp,
                     fontStyle = FontStyle.Italic,
                     modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
                 )
                 // Bio, if provided
                 Text(
-                    text = student?.bio ?: "Let's meet up!",
+                    text = "An English soldier, explorer, colonial governor, admiral of New England, and author. " +
+                            "Currently studying calculus at Union South",
                     fontSize = 16.sp,
                     modifier = Modifier
                         .padding(start = 16.dp, bottom = 8.dp)
@@ -292,7 +303,7 @@ fun UserCard(
 @Preview
 @Composable
 fun PreviewUserCard() {
-    UserCard(student = null)
+    UserCard()
 }
 
 // Custom map marker, potentially use to display other students?

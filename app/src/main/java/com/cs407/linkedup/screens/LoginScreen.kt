@@ -123,6 +123,7 @@ fun createAccountPrompt(
     Row() {
         Text(
             text = stringResource(id = R.string.account_prompt),
+
         )
         Text(
             text = stringResource(id = R.string.create_prompt),
@@ -140,7 +141,7 @@ fun LoginButton(
     Button(
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.Black
+            contentColor = Color.White
         ),
         onClick = onLoginClick,
 
