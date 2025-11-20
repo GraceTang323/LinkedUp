@@ -92,6 +92,27 @@ fun deleteAccountButton(
         )
     }
 }
+
+@Composable
+fun prefButton(
+    viewModel: ProfileViewModel,
+    onPrefClick: () -> Unit
+){
+    // Logout Button
+    Button(
+        onClick = {
+            onPrefClick()
+        },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF2E7D32), // darker green?
+            contentColor = Color.White
+        ),
+        modifier = Modifier.padding(vertical = 8.dp)
+    ) {
+        Text(text = "Preferences")
+    }
+}
+
 @Composable
 
 fun saveProfileButton(
@@ -128,6 +149,7 @@ fun ProfileScreen(
     requestPhotoAccess: () -> Unit,
     onLogout: () -> Unit,
     onDelete: () -> Unit,
+    onPrefClick: () -> Unit,
 ) {
     val authState by authViewModel.authState.collectAsState()
     val profileState by profileViewModel.profileState.collectAsState()
@@ -174,7 +196,10 @@ fun ProfileScreen(
                         major = major,
                         bio = bio
                     )
-
+                    prefButton(
+                        viewModel = profileViewModel,
+                        onPrefClick = onPrefClick
+                    )
                 }
                 PhoneNumberField(
                     phoneNumber,
