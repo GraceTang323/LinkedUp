@@ -65,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.cs407.linkedup.R
+import com.cs407.linkedup.ui.theme.mintGreen
 import com.cs407.linkedup.viewmodels.MapViewModel
 import com.cs407.linkedup.viewmodels.Student
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -96,6 +97,7 @@ fun MapScreen(
     }
     // Converts Flow<List<Student>> to List<Student> so we can display them on the map
     val students by viewModel.students.collectAsState()
+    val matches by viewModel.matchedStudents.collectAsState()
     val selectedStudent = viewModel.selectedStudent
 
     var showUserCard by remember { mutableStateOf(false) }
@@ -205,6 +207,43 @@ fun MapScreen(
                 )
             }
         }
+        matches.forEach { student ->
+            key("${student.name}+${student.location}") {
+                MarkerComposable(
+                    state = MarkerState(position = student.location),
+                    onClick = {
+                        viewModel.selectStudent(student)
+                        showUserCard = true
+                        true // click is consumed
+                    },
+                    content = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .background(
+                                        color = mintGreen,
+                                        shape = CircleShape
+                                    )
+                                    .border(
+                                        width = 3.dp,
+                                        color = Color.White,
+                                        shape = CircleShape
+                                    )
+                            )
+                            Text(
+                                text = student.name,
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                )
+            }
+        }
     }
 
     // TODO: fix user card sliding all the way to the screen's height
@@ -219,6 +258,7 @@ fun MapScreen(
         ) + fadeOut()
     ) {
         UserCard(
+            isMatched = selectedStudent in matches,
             student = selectedStudent,
             onLinkUpClick = {
                 Log.d("MapScreen", "Link Up button clicked")
@@ -242,6 +282,7 @@ fun MapScreen(
 fun UserCard(
     modifier: Modifier = Modifier,
     student: Student?,
+    isMatched: Boolean = false,
     onLinkUpClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
 ) {
@@ -299,6 +340,7 @@ fun UserCard(
                 )
 
                 Button(
+                    enabled = !isMatched, // disable link up button for already matched users
                     onClick = { onLinkUpClick() },
                     colors = ButtonDefaults.buttonColors(Color(0xff209640)),
                     modifier = Modifier

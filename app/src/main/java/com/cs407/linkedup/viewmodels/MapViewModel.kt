@@ -56,9 +56,13 @@ class MapViewModel(
     // Interacts with the Google Maps SDK to retrieve location data
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
-    // list of nearby students to display
+    // list of all nearby students
     private val _students = MutableStateFlow<List<Student>>(emptyList())
     val students = _students.asStateFlow()
+
+    // list of students the current user has matched with
+    private val _matchedStudents = MutableStateFlow<List<Student>>(emptyList())
+    val matchedStudents = _matchedStudents.asStateFlow()
 
     // Only true if both users express interest, false if one-way, null if no match yet
     private val _matchStatus = MutableStateFlow<Boolean?>(null)
@@ -69,7 +73,9 @@ class MapViewModel(
             repository.getNearbyStudents().collect { students ->
                 val matchedIds = repository.getMatchedUserIds()
                 val unmatched = students.filter{ it.uid !in matchedIds }
+                val matched = students.filter{ it.uid in matchedIds }
                 _students.value = unmatched
+                _matchedStudents.value = matched
             }
         }
     }
