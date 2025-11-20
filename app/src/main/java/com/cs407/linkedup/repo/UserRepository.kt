@@ -16,6 +16,7 @@ class UserRepository(
 ) {
     private val collection = firestore.collection("users")
 
+    // Saves the user's chosen location to Firestore
     suspend fun saveUserLocation(location: LatLng) {
         val userId = auth.currentUser?.uid ?: throw IllegalStateException("No user logged in")
 
@@ -41,7 +42,8 @@ class UserRepository(
         return if (lat != null && lng != null) LatLng(lat, lng) else null
     }
 
-    // we can use callbackFlow as a channel between Firestore and the Flow
+    // Fetches all students in the database collection as of now, future plans include filtering by a distance cutoff
+    // Uses callbackFlow as an intermediate connector between Firestore and the Flow
     fun getNearbyStudents(): Flow<List<Student>> = callbackFlow {
         // adding a listener allows live updates when database changes
         val subscription = collection.addSnapshotListener { snapshot, error ->
@@ -50,6 +52,7 @@ class UserRepository(
                 return@addSnapshotListener
             }
             val students = snapshot?.documents?.mapNotNull { doc ->
+                val uid = doc.id
                 val name = doc.getString("name") ?: return@mapNotNull null // skips if no name
                 val major = doc.getString("major") ?: ""
                 val bio = doc.getString("bio") ?: ""
@@ -58,6 +61,7 @@ class UserRepository(
                 val lng = map["lng"] as? Double
 
                 Student(
+                    uid = uid,
                     name = name,
                     major = major,
                     bio = bio,
@@ -69,5 +73,78 @@ class UserRepository(
             trySend(students)
         }
         awaitClose { subscription.remove() } // remove Firestore listener when flow is closed
+    }
+
+    // Saves the current user's interest to the target user's interests subcollection
+    // Updates matches for both users if a mutual interest is found
+    // Returns true on a match, false otherwise
+    suspend fun linkUp(targetUid: String): Boolean {
+        val myUid = auth.currentUser?.uid ?: return false
+
+        // pre-safety check to see if the other user has already matched --> prevent DUPLICATES
+        val isMatchedAlready = firestore
+            .collection("users")
+            .document(myUid)
+            .collection("matches")
+            .document(targetUid)
+            .get() // if the other user is new/null, get will return a missing doc by default
+            .await()
+            .exists()
+        if (isMatchedAlready) { // exit if they're already matched
+            return false
+        }
+
+        // save user's interest in the other user's interests subcollection
+        firestore.collection("users")
+            .document(myUid)
+            .collection("interests")
+            .document(targetUid)
+            .set(
+                mapOf("liked" to true)
+            )
+            .await()
+
+        // do a check to see if the other user has already expressed interest back
+        val mutual = firestore.collection("users")
+            .document(targetUid)
+            .collection("interests")
+            .document(myUid)
+            .get()
+            .await()
+            .exists()
+
+        if (mutual) {
+            // it's a match --> create a new match document for both users
+            val match = mapOf("matched" to true)
+
+            firestore.collection("users")
+                .document(myUid)
+                .collection("matches")
+                .document(targetUid)
+                .set(match)
+                .await()
+            firestore.collection("users")
+                .document(targetUid)
+                .collection("matches")
+                .document(myUid)
+                .set(match)
+                .await()
+
+            return true
+        } else {
+            return false // not a match yet, only one-way interest as of now
+        }
+    }
+
+    // returns a list of uids of all matched users
+    suspend fun getMatchedUserIds(): List<String> {
+        val userId = auth.currentUser?.uid ?: return emptyList()
+        val snapshot = firestore
+            .collection("users")
+            .document(userId)
+            .collection("matches")
+            .get()
+            .await()
+        return snapshot.documents.map { it.id }
     }
 }

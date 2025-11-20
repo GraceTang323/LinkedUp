@@ -21,6 +21,7 @@ import kotlinx.coroutines.tasks.await
 // Represents a student with their name, subject, and location
 // Can add more attributes (like a list of subjects and interests) once databases are set up
 data class Student(
+    val uid: String,
     val name: String,
     val major: String,
     val location: LatLng,
@@ -55,13 +56,26 @@ class MapViewModel(
     // Interacts with the Google Maps SDK to retrieve location data
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
+    // list of all nearby students
     private val _students = MutableStateFlow<List<Student>>(emptyList())
     val students = _students.asStateFlow()
 
-    init {
+    // list of students the current user has matched with
+    private val _matchedStudents = MutableStateFlow<List<Student>>(emptyList())
+    val matchedStudents = _matchedStudents.asStateFlow()
+
+    // Only true if both users express interest, false if one-way, null if no match yet
+    private val _matchStatus = MutableStateFlow<Boolean?>(null)
+    val matchStatus = _matchStatus.asStateFlow()
+
+    init { // fetch nearby un-matched students immediately when MapViewModel is initialized
         viewModelScope.launch {
             repository.getNearbyStudents().collect { students ->
-                _students.value = students
+                val matchedIds = repository.getMatchedUserIds()
+                val unmatched = students.filter{ it.uid !in matchedIds }
+                val matched = students.filter{ it.uid in matchedIds }
+                _students.value = unmatched
+                _matchedStudents.value = matched
             }
         }
     }
@@ -72,16 +86,6 @@ class MapViewModel(
     fun selectStudent(student: Student) { // helper function to select a student
         selectedStudent = student
     }
-
-    // TODO: Delete this and replace with "real" student data once database is set up
-    private val _mockStudents = listOf(
-        Student("John Doe", "Computer Science", LatLng(43.0731, -89.4052)),
-        Student("Sam Smith", "Biochemical Engineering", LatLng(43.0736, -89.4066)),
-        Student("Mary Harvey", "Nursing", LatLng(43.0720, -89.4050)),
-        Student("Flint Lockwood", "Nursing", LatLng(43.0739, -89.4046)),
-    )
-    // List of fake students for map testing purposes
-    val mockStudents: List<Student> get() = _mockStudents
 
     // Initializes the location client when a valid Context becomes available
     fun initializeLocationClient(context: Context) {
@@ -183,5 +187,16 @@ class MapViewModel(
         _uiState.value = _uiState.value.copy(
             locationPermissionGranted = granted
         )
+    }
+
+    fun linkUp(targetUid: String) {
+        viewModelScope.launch {
+            val matched = repository.linkUp(targetUid)
+            _matchStatus.value = matched
+        }
+    }
+    // Cleans the match status for future matches
+    fun clearMatch() {
+        _matchStatus.value = null
     }
 }
