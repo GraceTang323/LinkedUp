@@ -36,6 +36,7 @@ import androidx.navigation.compose.rememberNavController
 import com.cs407.linkedup.repo.UserRepository
 import com.cs407.linkedup.viewmodels.AuthViewModel
 import com.cs407.linkedup.viewmodels.MapViewModel
+import com.cs407.linkedup.viewmodels.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,7 +151,11 @@ fun MainScreen(
             }
             composable("home") { MapScreen(viewModel = mapViewModel) }
             composable("chat") { ChatsScreenPlaceholder() }
-            composable("settings") { SettingsScreenPlaceholder() }
+            composable("settings") {
+                SettingScreen(
+                    onNavigateToProfile = { navController.navigate("profile") }
+                )
+            }
             composable("profile") {
                 ProfileScreen(
                     onLogout = {
@@ -223,12 +228,3 @@ fun ChatsScreenPlaceholder() {
     }
 }
 
-@Composable
-fun SettingsScreenPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Settings Screen Coming Soon")
-    }
-}
