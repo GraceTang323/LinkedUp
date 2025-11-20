@@ -16,6 +16,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -127,8 +128,8 @@ fun AccountButton(
     Button(
         onClick = onCreateAccountClick,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Green,
-            contentColor = Color.Black
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = Color.White
         )
     ){
         Text( text = stringResource(id = R.string.create_button) )
@@ -169,7 +170,7 @@ fun CreateAccountScreen(
             passwordConfirmField(passwordConfirm, { input -> passwordConfirm = input })
             Text(
                 text = stringResource(R.string.back_to_login),
-                color = Color.Blue,
+                color = Color(0xFF1E88E5),
                 modifier = Modifier.clickable { onBackClick() }
             )
 
