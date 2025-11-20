@@ -53,6 +53,8 @@ fun MainScreen(
     val settingsViewModel = remember { SettingsViewModel() }
     val profileViewModel = remember { ProfileViewModel() }
     val authState by authViewModel.authState.collectAsState()
+    val profileState by profileViewModel.profileState.collectAsState()
+
 
     val startDestination = if (authState.currentUser == null) "login" else "home"
     val currentDestination by navController.currentBackStackEntryAsState()
@@ -144,10 +146,21 @@ fun MainScreen(
                 )
             }
             composable("preferences_screen") {
-                PreferencesScreen(
-                    onBackClick = {navController.navigate("create_profile") },
-                    onSaveClick = { navController.navigate("select_location") } // move on to select location
-                )
+                val previousRoute = navController.previousBackStackEntry?.destination?.route
+                val fromProfile = previousRoute == "profile"
+                if (fromProfile) {
+                    PreferencesScreen(
+                        onBackClick = {navController.navigate("profile") },
+                        onSaveClick = { navController.navigate("home") },
+                        profileViewModel = profileViewModel
+                    )
+                } else {
+                    PreferencesScreen(
+                        onBackClick = {navController.navigate("create_profile") },
+                        onSaveClick = { navController.navigate("select_location") },
+                        profileViewModel = profileViewModel
+                    )
+                }
             }
             composable("select_location") {
                 SelectLocationScreen(
@@ -176,6 +189,9 @@ fun MainScreen(
                                },
                     onDelete = {
                         navController.navigate("login")
+                    },
+                    onPrefClick = {
+                        navController.navigate("preferences_screen")
                     }
                 )
             }
