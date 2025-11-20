@@ -67,6 +67,7 @@ import coil.request.ImageRequest
 import com.cs407.linkedup.R
 import com.cs407.linkedup.ui.theme.mintGreen
 import com.cs407.linkedup.viewmodels.MapViewModel
+import com.cs407.linkedup.viewmodels.SettingsViewModel
 import com.cs407.linkedup.viewmodels.Student
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.android.gms.maps.model.CameraPosition
@@ -83,14 +84,12 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(
-    viewModel: MapViewModel
+    mapViewModel: MapViewModel,
+    settingsViewModel: SettingsViewModel
 ) {
     // Automatically updates UI whenever data changes
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    //Radius that user can see other student's locations within. It is hardcoded right now
-    //but should eventually be a reference to a field in the uiState
-    val searchRadius = 1.0
+    val uiState by mapViewModel.uiState.collectAsStateWithLifecycle()
+    val settingsState by settingsViewModel.settingsState.collectAsStateWithLifecycle()
 
     // Define a default location for the map to load to before the user's location is obtained
     val defaultLocation = LatLng(43.0731, -89.4012)
@@ -101,26 +100,26 @@ fun MapScreen(
         position = CameraPosition.fromLatLngZoom(defaultLocation, 16f)
     }
     // Converts Flow<List<Student>> to List<Student> so we can display them on the map
-    val students by viewModel.students.collectAsState()
-    val matches by viewModel.matchedStudents.collectAsState()
-    val selectedStudent = viewModel.selectedStudent
+    val students by mapViewModel.students.collectAsState()
+    val matches by mapViewModel.matchedStudents.collectAsState()
+    val selectedStudent = mapViewModel.selectedStudent
   
     val studentsInRange =
         uiState.selectedLocation?.let { location ->
             students.filter { student ->
-                SphericalUtil.computeDistanceBetween(student.location, location) / 1000.0 <= searchRadius
+                SphericalUtil.computeDistanceBetween(student.location, location) / 1000.0 <= settingsState.searchRadius
             }
         } ?: emptyList()
 
     var showUserCard by remember { mutableStateOf(false) }
     var showMatchDialog by remember { mutableStateOf(false) }
 
-    val isMatched by viewModel.matchStatus.collectAsState()
+    val isMatched by mapViewModel.matchStatus.collectAsState()
     val context = LocalContext.current
 
     // Updates the camera position to reflect the user's selected location
     LaunchedEffect(uiState.selectedLocation) {
-        viewModel.loadUserLocation()
+        mapViewModel.loadUserLocation()
         uiState.selectedLocation?.let { location ->
             cameraPositionState.position = CameraPosition.fromLatLngZoom(
                 location,
@@ -134,7 +133,7 @@ fun MapScreen(
             true -> {
                 // it's a match
                 showMatchDialog = true
-                viewModel.clearMatch()
+                mapViewModel.clearMatch()
             }
             false -> {
                 // not a match yet
@@ -143,7 +142,7 @@ fun MapScreen(
                     "You liked ${selectedStudent?.name}",
                     Toast.LENGTH_SHORT
                 ).show()
-                viewModel.clearMatch()
+                mapViewModel.clearMatch()
             }
             null -> Unit // no match, yet, do nothing
         }
@@ -187,7 +186,7 @@ fun MapScreen(
                 MarkerComposable(
                     state = MarkerState(position = student.location),
                     onClick = {
-                        viewModel.selectStudent(student)
+                        mapViewModel.selectStudent(student)
                         showUserCard = true
                         true // click is consumed
                     },
@@ -224,7 +223,7 @@ fun MapScreen(
                 MarkerComposable(
                     state = MarkerState(position = student.location),
                     onClick = {
-                        viewModel.selectStudent(student)
+                        mapViewModel.selectStudent(student)
                         showUserCard = true
                         true // click is consumed
                     },
@@ -274,7 +273,7 @@ fun MapScreen(
             student = selectedStudent,
             onLinkUpClick = {
                 Log.d("MapScreen", "Link Up button clicked")
-                viewModel.linkUp(selectedStudent!!.uid)
+                mapViewModel.linkUp(selectedStudent!!.uid)
                 showUserCard = false
             },
             onCloseClick = { showUserCard = false }
