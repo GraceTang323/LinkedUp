@@ -3,6 +3,7 @@ package com.cs407.linkedup.screens
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -27,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -36,6 +38,7 @@ import androidx.navigation.compose.rememberNavController
 import com.cs407.linkedup.repo.UserRepository
 import com.cs407.linkedup.viewmodels.AuthViewModel
 import com.cs407.linkedup.viewmodels.MapViewModel
+import com.cs407.linkedup.viewmodels.ProfileViewModel
 import com.cs407.linkedup.viewmodels.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,6 +50,7 @@ fun MainScreen(
 ) {
     val mapViewModel = remember { MapViewModel(repository) }
     val settingsViewModel = remember { SettingsViewModel() }
+    val profileViewModel = remember { ProfileViewModel() }
     val authState by authViewModel.authState.collectAsState()
 
     val startDestination = if (authState.currentUser == null) "login" else "home"
@@ -92,7 +96,7 @@ fun MainScreen(
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.White,
                         titleContentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    ),
                 )
             }
         },
@@ -160,6 +164,10 @@ fun MainScreen(
             }
             composable("profile") {
                 ProfileScreen(
+                    authViewModel = authViewModel,
+                    profileViewModel = profileViewModel,
+                    hasPhotoAccess = { true },
+                    requestPhotoAccess = {},
                     onLogout = {
                         navController.navigate("login")
                                },

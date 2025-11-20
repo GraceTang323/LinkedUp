@@ -26,5 +26,6 @@
     <string name="cancel_button">Cancel</string>
     <string name="location_title">Plot Your Next Meetup!</string>"
     <string name="location_body">Because great plans start with great spots</string>
+    <string name="save_profile">Save Profile</string>
 
 </resources>
