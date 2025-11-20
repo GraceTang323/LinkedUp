@@ -181,43 +181,42 @@ fun MapScreen(
             )
         }
         // Display nearby student markers
-            studentsInRange.forEach { student ->
-                // Use unique key for each marker so old markers are not recreated with every update
-                key("${student.name}+${student.location}") {
-                    MarkerComposable(
-                        state = MarkerState(position = student.location),
-                        onClick = {
-                            viewModel.selectStudent(student)
-                            showUserCard = true
-                            true // click is consumed
-                        },
-                        content = {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .background(
-                                            Color(0xFF4285F4),
-                                            shape = CircleShape
-                                        )
-                                        .border(
-                                            width = 3.dp,
-                                            color = Color.White,
-                                            shape = CircleShape
-                                        )
-                                )
-                                Text(
-                                    text = student.name,
-                                    color = Color.Black,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+        studentsInRange.forEach { student ->
+            // Use unique key for each marker so old markers are not recreated with every update
+            key("${student.name}+${student.location}") {
+                MarkerComposable(
+                    state = MarkerState(position = student.location),
+                    onClick = {
+                        viewModel.selectStudent(student)
+                        showUserCard = true
+                        true // click is consumed
+                    },
+                    content = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .background(
+                                        Color(0xFF4285F4),
+                                        shape = CircleShape
+                                    )
+                                    .border(
+                                        width = 3.dp,
+                                        color = Color.White,
+                                        shape = CircleShape
+                                    )
+                            )
+                            Text(
+                                text = student.name,
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
-                    )
-                }
+                    }
+                )
             }
         }
         matches.forEach { student ->
@@ -443,7 +442,7 @@ fun MatchDialog(
 @Preview
 @Composable
 fun PreviewUserCard() {
-    UserCard()
+    UserCard(student = null)
 }
 
 // Custom map marker, potentially use to display other students?
