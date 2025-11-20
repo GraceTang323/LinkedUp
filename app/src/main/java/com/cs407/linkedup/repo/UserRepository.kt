@@ -70,7 +70,7 @@ class UserRepository(
             } ?: emptyList()
 
             // push new list of students to flow
-            trySend(students)
+            trySend(students.filter({ it.uid != auth.currentUser?.uid }))
         }
         awaitClose { subscription.remove() } // remove Firestore listener when flow is closed
     }
