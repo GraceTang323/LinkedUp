@@ -110,7 +110,7 @@ fun MapScreen(
             students.filter { student ->
                 SphericalUtil.computeDistanceBetween(student.location, location) / 1000.0 <= searchRadius
             }
-        } ?: emptyList<Student>()
+        } ?: emptyList()
 
     var showUserCard by remember { mutableStateOf(false) }
     var showMatchDialog by remember { mutableStateOf(false) }
@@ -128,7 +128,7 @@ fun MapScreen(
             )
         }
     }
-
+    // Updates the match status and clears the selected student
     LaunchedEffect(isMatched) {
         when (isMatched) {
             true -> {
