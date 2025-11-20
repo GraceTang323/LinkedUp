@@ -99,7 +99,8 @@ fun saveProfileButton(
     phoneNumber: String,
     name: String,
     major: String,
-    bio: String
+    bio: String,
+    changeEditStatus: () -> Unit
 ){
     val context = LocalContext.current
     Button(
@@ -110,6 +111,7 @@ fun saveProfileButton(
                 Toast.makeText(context, profileViewModel.profileState.value.error, Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(context, "Successfully saved changes!", Toast.LENGTH_LONG).show()
+                changeEditStatus()
             }
                   },
         colors = ButtonDefaults.buttonColors(
@@ -118,6 +120,22 @@ fun saveProfileButton(
         )
     ){
         Text(stringResource( id = R.string.save_profile) )
+    }
+}
+@Composable
+fun editButton(
+    onEditClick: () -> Unit
+){
+    OutlinedButton(
+        onClick = onEditClick,
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.White,
+            contentColor = MaterialTheme.colorScheme.primary
+        )
+
+    ){
+        Text(stringResource(id = R.string.edit_profile) )
     }
 }
 @Composable
@@ -137,6 +155,8 @@ fun ProfileScreen(
     var major by remember{ mutableStateOf(profileState.major) }
     var bio by remember{ mutableStateOf(profileState.bio) }
     var phoneNumber by remember { mutableStateOf(profileState.phoneNumber) }
+
+    var isEditing by remember{ mutableStateOf(false) }
 
 
 
@@ -167,13 +187,18 @@ fun ProfileScreen(
                         hasPhotoAccess = hasPhotoAccess,
                         requestPhotoAccess = requestPhotoAccess
                     )
-                    saveProfileButton(
-                        profileViewModel = profileViewModel,
-                        phoneNumber = phoneNumber,
-                        name = name,
-                        major = major,
-                        bio = bio
-                    )
+                    if(isEditing) {
+                        saveProfileButton(
+                            profileViewModel = profileViewModel,
+                            phoneNumber = phoneNumber,
+                            name = name,
+                            major = major,
+                            bio = bio,
+                            { isEditing = false }
+                        )
+                    } else {
+                        editButton({ isEditing = true })
+                    }
 
                 }
                 PhoneNumberField(

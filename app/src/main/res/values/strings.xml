@@ -27,5 +27,6 @@
     <string name="location_title">Plot Your Next Meetup!</string>"
     <string name="location_body">Because great plans start with great spots</string>
     <string name="save_profile">Save Profile</string>
+    <string name="edit_profile">Edit Profile</string>
 
 </resources>
