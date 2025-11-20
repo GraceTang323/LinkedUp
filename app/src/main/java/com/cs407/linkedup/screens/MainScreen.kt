@@ -46,6 +46,7 @@ fun MainScreen(
     navController: NavHostController = rememberNavController()
 ) {
     val mapViewModel = remember { MapViewModel(repository) }
+    val settingsViewModel = remember { SettingsViewModel() }
     val authState by authViewModel.authState.collectAsState()
 
     val startDestination = if (authState.currentUser == null) "login" else "home"
@@ -149,10 +150,11 @@ fun MainScreen(
                     }
                 )
             }
-            composable("home") { MapScreen(viewModel = mapViewModel) }
+            composable("home") { MapScreen(mapViewModel = mapViewModel, settingsViewModel = settingsViewModel) }
             composable("chat") { ChatsScreenPlaceholder() }
             composable("settings") {
                 SettingScreen(
+                    viewModel = settingsViewModel,
                     onNavigateToProfile = { navController.navigate("profile") }
                 )
             }
