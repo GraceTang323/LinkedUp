@@ -30,8 +30,8 @@ class ProfileViewModel: ViewModel() {
     val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
 
     init {
-        val uid = auth.currentUser?.uid
         viewModelScope.launch{
+            val uid = auth.currentUser?.uid
             try{
                 _profileState.value = _profileState.value.copy(isLoading = true)
                 if (uid != null) {
@@ -62,6 +62,38 @@ class ProfileViewModel: ViewModel() {
             }
         }
 
+    }
+
+    fun loadProfile(uid: String?) {
+        viewModelScope.launch {
+            try {
+                _profileState.value = _profileState.value.copy(isLoading = true)
+
+                if (uid != null) {
+                    val document = db.collection("users").document(uid).get().await()
+                    if (document.exists()) {
+                        _profileState.value = ProfileState(
+                            phoneNumber = document.getString("phone_number") ?: "",
+                            name = document.getString("name") ?: "",
+                            major = document.getString("major") ?: "",
+                            bio = document.getString("bio") ?: "",
+                            isLoading = false,
+                            error = null
+                        )
+                    } else {
+                        _profileState.value = _profileState.value.copy(isLoading = false)
+                    }
+                } else {
+                    _profileState.value = _profileState.value.copy(isLoading = false)
+                }
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Error loading profile", e)
+                _profileState.value = _profileState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }
+        }
     }
 
     fun updateProfile(phoneNumber: String, name: String, major: String, bio: String) {

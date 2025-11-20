@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -228,8 +232,56 @@ fun ProfileScreen(
                         onDismissRequest = { expandedMenu = false }
                     ){
                         DropdownMenuItem(
-                            text = { Text("Change Preferences") },
-                            onClick = {}
+                            text = { Text(
+                                stringResource(id = R.string.preferences),
+                                color = MaterialTheme.colorScheme.primary
+                            ) },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            onClick = {
+                                expandedMenu = false
+                                onPrefClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(
+                                stringResource(id = R.string.logout_button),
+                                color = MaterialTheme.colorScheme.primary
+                            ) },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            onClick = {
+                                expandedMenu = false
+                                authViewModel.logout()
+                                onLogout()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(
+                                stringResource(id = R.string.delete_button),
+                                color = Color.Red
+                                ) },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = Color.Red
+                                )
+                            },
+                            onClick = {
+                                expandedMenu = false
+                                showDeleteDialog = true
+                            }
                         )
                     }
 
@@ -247,29 +299,16 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 profilePicture(imageUri)
-                Row() {
                     changePictureButton(
                         onButtonClick = { launcher.launch("image/*") },
                         hasPhotoAccess = hasPhotoAccess,
                         requestPhotoAccess = requestPhotoAccess
                     )
-                    if(isEditing){
-                        saveProfileButton(
-                            profileViewModel = profileViewModel,
-                            phoneNumber = phoneNumber,
-                            name = name,
-                            major = major,
-                            bio = bio,
-                            { isEditing = false }
-                        )
-                    } else {
-                        editButton({ isEditing = true })
-                    }
-                    prefButton(
-                        viewModel = profileViewModel,
-                        onPrefClick = onPrefClick
-                    )
-                }
+
+//                    prefButton(
+//                        viewModel = profileViewModel,
+//                        onPrefClick = onPrefClick
+//                    )
                 PhoneNumberField(
                     phoneNumber,
                     { input -> phoneNumber = input }
@@ -277,10 +316,22 @@ fun ProfileScreen(
                 nameTextField(name, { input -> name = input })
                 majorTextField(major, { input -> major = input })
                 bioTextField(bio, { input -> bio = input })
-                Row() {
-                    logoutButton(authViewModel, onLogout)
-                    deleteAccountButton(onDeleteClick = { showDeleteDialog = true })
+                if(isEditing) {
+                    saveProfileButton(
+                        profileViewModel = profileViewModel,
+                        phoneNumber = phoneNumber,
+                        name = name,
+                        major = major,
+                        bio = bio,
+                        { isEditing = false }
+                    )
+                } else {
+                    editButton({ isEditing = true })
                 }
+//                Row() {
+//                    logoutButton(authViewModel, onLogout)
+//                    deleteAccountButton(onDeleteClick = { showDeleteDialog = true })
+//                }
             }
 
             // error message, if any
