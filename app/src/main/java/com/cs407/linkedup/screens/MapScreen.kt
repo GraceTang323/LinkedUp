@@ -297,7 +297,6 @@ fun UserCard(
     isMatched: Boolean = false,
     onLinkUpClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
-    // add a user repo object or similar to fetch user name, major, bio, etc.
 ) {
     Card(
         modifier = modifier
@@ -332,21 +331,20 @@ fun UserCard(
             ) {
                 // Name
                 Text(
-                    text = "John Smith",
+                    text = student?.name ?: "Empty Name",
                     fontSize = 30.sp,
                     modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
                 )
                 // Major(s)
                 Text(
-                    text = "Studying: Mathematics", // TODO: change to something like "studying: ${major}"
+                    text = "Studying: ${student?.major ?: "Undecided"}",
                     fontSize = 18.sp,
                     fontStyle = FontStyle.Italic,
                     modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
                 )
                 // Bio, if provided
                 Text(
-                    text = "An English soldier, explorer, colonial governor, admiral of New England, and author. " +
-                            "Currently studying calculus at Union South",
+                    text = student?.bio ?: "Let's meet up!",
                     fontSize = 16.sp,
                     modifier = Modifier
                         .padding(start = 16.dp, bottom = 8.dp)
