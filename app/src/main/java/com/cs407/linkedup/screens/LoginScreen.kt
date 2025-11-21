@@ -2,7 +2,6 @@ package com.cs407.linkedup.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement.Absolute.spacedBy
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -40,14 +38,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.cs407.linkedup.R
 import com.cs407.linkedup.viewmodels.AuthViewModel
+import com.cs407.linkedup.viewmodels.ProfileViewModel
 
 @Composable
 fun appTitle(){
@@ -155,12 +152,13 @@ fun LoginButton(
 fun LoginScreen (
     onCreateAccountClick: () -> Unit,
     onLoginSuccess: () -> Unit,
-    viewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    profileViewModel: ProfileViewModel = viewModel()
 ){
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("")}
 
-    val authState by viewModel.authState.collectAsState() // observe auth state changes
+    val authState by authViewModel.authState.collectAsState() // observe auth state changes
 
     LaunchedEffect(authState.isSuccess) {
         if (authState.isSuccess && authState.currentUser != null) {
@@ -203,7 +201,8 @@ fun LoginScreen (
             Spacer(modifier = Modifier.height(5.dp))
             // Login button
             LoginButton(onLoginClick = {
-                viewModel.login(email, password)
+                authViewModel.login(email, password)
+//                profileViewModel.loadProfile(authState.currentUser?.uid)
             })
         }
     }

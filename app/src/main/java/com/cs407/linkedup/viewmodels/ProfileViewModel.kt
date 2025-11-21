@@ -3,11 +3,14 @@ package com.cs407.linkedup.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cs407.linkedup.data.UserPreferences
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -17,8 +20,8 @@ data class ProfileState(
     val major: String = "",
     val bio: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null
-
+    val preferences: UserPreferences = UserPreferences(),
+    val error: String? = null,
 )
 class ProfileViewModel: ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -27,8 +30,8 @@ class ProfileViewModel: ViewModel() {
     val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
 
     init {
-        val uid = auth.currentUser?.uid
         viewModelScope.launch{
+            val uid = auth.currentUser?.uid
             try{
                 _profileState.value = _profileState.value.copy(isLoading = true)
                 if (uid != null) {
@@ -59,6 +62,38 @@ class ProfileViewModel: ViewModel() {
             }
         }
 
+    }
+
+    fun loadProfile(uid: String?) {
+        viewModelScope.launch {
+            try {
+                _profileState.value = _profileState.value.copy(isLoading = true)
+
+                if (uid != null) {
+                    val document = db.collection("users").document(uid).get().await()
+                    if (document.exists()) {
+                        _profileState.value = ProfileState(
+                            phoneNumber = document.getString("phone_number") ?: "",
+                            name = document.getString("name") ?: "",
+                            major = document.getString("major") ?: "",
+                            bio = document.getString("bio") ?: "",
+                            isLoading = false,
+                            error = null
+                        )
+                    } else {
+                        _profileState.value = _profileState.value.copy(isLoading = false)
+                    }
+                } else {
+                    _profileState.value = _profileState.value.copy(isLoading = false)
+                }
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Error loading profile", e)
+                _profileState.value = _profileState.value.copy(
+                    isLoading = false,
+                    error = e.message
+                )
+            }
+        }
     }
 
     fun updateProfile(phoneNumber: String, name: String, major: String, bio: String) {
@@ -102,5 +137,44 @@ class ProfileViewModel: ViewModel() {
         }
 
     }
+
+    fun updatePreferences(interests: List<String>, classes: List<String>) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            _profileState.update { it.copy(error = "User not authenticated") }
+            return
+        }
+
+        viewModelScope.launch {
+            _profileState.update { it.copy(isLoading = true, error = null) }
+
+            val preferences = UserPreferences(interests, classes)
+
+            try {
+                db.collection("users")
+                    .document(uid)
+                    .update(
+                        mapOf(
+                            "interestPrefs" to preferences.interests,
+                            "classes" to preferences.classes
+                        )
+                    )
+                    .await()
+
+                _profileState.update {
+                    it.copy(
+                        isLoading = false,
+                        preferences = preferences
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("UpdatePreferences", "Error updating user preferences.", e)
+                _profileState.update {
+                    it.copy(isLoading = false, error = "Error updating preferences")
+                }
+            }
+        }
+    }
+
 
 }
