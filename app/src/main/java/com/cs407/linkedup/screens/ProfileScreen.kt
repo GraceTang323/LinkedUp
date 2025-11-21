@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,17 +17,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -120,7 +131,8 @@ fun saveProfileButton(
     phoneNumber: String,
     name: String,
     major: String,
-    bio: String
+    bio: String,
+    changeEditStatus: () -> Unit
 ){
     val context = LocalContext.current
     Button(
@@ -131,6 +143,7 @@ fun saveProfileButton(
                 Toast.makeText(context, profileViewModel.profileState.value.error, Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(context, "Successfully saved changes!", Toast.LENGTH_LONG).show()
+                changeEditStatus()
             }
                   },
         colors = ButtonDefaults.buttonColors(
@@ -141,6 +154,24 @@ fun saveProfileButton(
         Text(stringResource( id = R.string.save_profile) )
     }
 }
+@Composable
+fun editButton(
+    onEditClick: () -> Unit
+){
+    OutlinedButton(
+        onClick = onEditClick,
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.White,
+            contentColor = MaterialTheme.colorScheme.primary
+        )
+
+    ){
+        Text(stringResource(id = R.string.edit_profile) )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     authViewModel: AuthViewModel = viewModel(),
@@ -160,6 +191,10 @@ fun ProfileScreen(
     var bio by remember{ mutableStateOf(profileState.bio) }
     var phoneNumber by remember { mutableStateOf(profileState.phoneNumber) }
 
+    var isEditing by remember{ mutableStateOf(false) }
+
+    var expandedMenu by remember{ mutableStateOf(value = false) }
+
 
 
     //TODO: Placeholder variable, this should eventually be obtained from a viewmodel
@@ -172,7 +207,88 @@ fun ProfileScreen(
         imageUri = uri
     }
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(id = R.string.profile),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                actions = {
+                    IconButton(onClick = { expandedMenu = true } ){
+                        Icon(Icons.Default.MoreVert, contentDescription = "More profile options")
+                    }
+
+                    DropdownMenu(
+                        expanded = expandedMenu,
+                        onDismissRequest = { expandedMenu = false }
+                    ){
+                        DropdownMenuItem(
+                            text = { Text(
+                                stringResource(id = R.string.preferences),
+                                color = MaterialTheme.colorScheme.primary
+                            ) },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            onClick = {
+                                expandedMenu = false
+                                onPrefClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(
+                                stringResource(id = R.string.logout_button),
+                                color = MaterialTheme.colorScheme.primary
+                            ) },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            onClick = {
+                                expandedMenu = false
+                                authViewModel.logout()
+                                onLogout()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(
+                                stringResource(id = R.string.delete_button),
+                                color = Color.Red
+                                ) },
+                            trailingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = Color.Red
+                                )
+                            },
+                            onClick = {
+                                expandedMenu = false
+                                showDeleteDialog = true
+                            }
+                        )
+                    }
+
+                }
+            )
+        }
+    ) { innerPadding ->
             //These functions are defined in CreateProfileScreen
             Column(
                 modifier = Modifier
@@ -183,24 +299,16 @@ fun ProfileScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 profilePicture(imageUri)
-                Row() {
                     changePictureButton(
                         onButtonClick = { launcher.launch("image/*") },
                         hasPhotoAccess = hasPhotoAccess,
                         requestPhotoAccess = requestPhotoAccess
                     )
-                    saveProfileButton(
-                        profileViewModel = profileViewModel,
-                        phoneNumber = phoneNumber,
-                        name = name,
-                        major = major,
-                        bio = bio
-                    )
-                    prefButton(
-                        viewModel = profileViewModel,
-                        onPrefClick = onPrefClick
-                    )
-                }
+
+//                    prefButton(
+//                        viewModel = profileViewModel,
+//                        onPrefClick = onPrefClick
+//                    )
                 PhoneNumberField(
                     phoneNumber,
                     { input -> phoneNumber = input }
@@ -208,10 +316,22 @@ fun ProfileScreen(
                 nameTextField(name, { input -> name = input })
                 majorTextField(major, { input -> major = input })
                 bioTextField(bio, { input -> bio = input })
-                Row() {
-                    logoutButton(authViewModel, onLogout)
-                    deleteAccountButton(onDeleteClick = { showDeleteDialog = true })
+                if(isEditing) {
+                    saveProfileButton(
+                        profileViewModel = profileViewModel,
+                        phoneNumber = phoneNumber,
+                        name = name,
+                        major = major,
+                        bio = bio,
+                        { isEditing = false }
+                    )
+                } else {
+                    editButton({ isEditing = true })
                 }
+//                Row() {
+//                    logoutButton(authViewModel, onLogout)
+//                    deleteAccountButton(onDeleteClick = { showDeleteDialog = true })
+//                }
             }
 
             // error message, if any
