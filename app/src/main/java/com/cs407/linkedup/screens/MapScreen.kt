@@ -257,7 +257,6 @@ fun MapScreen(
         }
     }
 
-    // TODO: fix user card sliding all the way to the screen's height
     // Displays the user card when showUserCard is true
     AnimatedVisibility(
         visible = showUserCard,
