@@ -147,4 +147,49 @@ class UserRepository(
             .await()
         return snapshot.documents.map { it.id }
     }
+
+    // removes the deleted user's id from others' interests and matches subcollections in firebase
+    // cleans up database when a user is deleted
+    suspend fun cascade_delete(userId: String) {
+        val usersRef = firestore.collection("users")
+
+        val usersQuery = usersRef.get().await()
+
+        for (doc in usersQuery.documents) {
+            val uid = doc.id
+            if (uid == userId) continue // skip deleted user's uid, removed later in authViewModel
+
+            // delete user from other user's matches
+            usersRef.document(uid)
+                .collection("matches")
+                .document(userId)
+                .delete()
+                .await()
+            // delete user from other user's interests
+            usersRef.document(uid)
+                .collection("interests")
+                .document(userId)
+                .delete()
+                .await()
+        }
+
+        // delete the user's subcollections --> interests, matches
+        val userInterests = usersRef
+            .document(userId)
+            .collection("interests")
+            .get()
+            .await()
+        for (doc in userInterests.documents) {
+            doc.reference.delete().await()
+        }
+
+        val userMatches = usersRef
+            .document(userId)
+            .collection("matches")
+            .get()
+            .await()
+        for (doc in userMatches.documents) {
+            doc.reference.delete().await()
+        }
+    }
 }

@@ -15,6 +15,7 @@ import com.cs407.linkedup.auth.signIn
 import com.cs407.linkedup.auth.signOut
 import com.cs407.linkedup.auth.updateName
 import com.cs407.linkedup.data.UserPreferences
+import com.cs407.linkedup.repo.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -35,13 +36,11 @@ data class AuthState(
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
-
+    private val repository = UserRepository(db, auth)
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState
 
     private val _userState = MutableStateFlow(UserState())
-    val userState: StateFlow<UserState> = _userState
-
 
     init {
         // Check if user is already logged in
@@ -264,6 +263,9 @@ class AuthViewModel : ViewModel() {
             val uid = user.uid
 
             try {
+                // Delete user from other users' interests/matches in database
+                repository.cascade_delete(uid)
+
                 // Delete user from Firebase Authentication
                 user.delete().await()
                 _authState.value = AuthState() // Clear auth state
