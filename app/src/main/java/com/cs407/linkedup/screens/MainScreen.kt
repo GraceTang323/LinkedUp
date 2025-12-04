@@ -169,25 +169,70 @@ fun MainScreen(
                     }
                 )
             }
-            composable("home") { MapScreen(mapViewModel = mapViewModel, settingsViewModel = settingsViewModel) }
+            composable("home") {
+                MapScreen(
+                    mapViewModel = mapViewModel,
+                    settingsViewModel = settingsViewModel,
+                    onStartTalking = {
+                        navController.navigate("chat")
+                    }
+                )
+            }
             composable("chat") {
+                val currentUser = authState.currentUser
+                val currentUserId = currentUser?.uid ?: ""
+
                 ChatScreen(
-                    onChatClick = { userId ->
-                        navController.navigate("chat_detail/$userId")
+                    repository = repository,
+                    currentUserId = currentUserId,
+                    onChatClick = { roomId, userName ->
+                        navController.navigate("chat_detail/$roomId/$userName")
+                    },
+                    onAddChatClick = {
+                        navController.navigate("new_chat")
                     }
                 )
             }
 
+
             composable(
-                route = "chat_detail/{userId}",
-                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                route = "chat_detail/{roomId}/{userName}",
+                arguments = listOf(
+                    navArgument("roomId") { type = NavType.StringType },
+                    navArgument("userName") { type = NavType.StringType }
+                )
             ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val otherUserName = backStackEntry.arguments?.getString("userName") ?: ""
+
+                val currentUser = authState.currentUser
+                val currentUserId = currentUser?.uid ?: ""
+                val currentUserName = currentUser?.displayName ?: "You"
+
                 ChatDetailScreen(
-                    userName = "John Smith",
+                    userName = otherUserName,
+                    roomId = roomId,
+                    currentUserId = currentUserId,
+                    currentUserName = currentUserName,
                     onBackClick = { navController.popBackStack() }
                 )
             }
+
+            composable("new_chat") {
+                NewChatScreen(
+                    userRepository = repository,
+                    onFriendSelected = { friendId, friendName ->
+                        val myUid = authState.currentUser?.uid ?: ""
+                        val roomId = buildRoomId(myUid, friendId)
+                        navController.navigate("chat_detail/$roomId/$friendName") {
+                            popUpTo("chat") // optional, keeps back stack clean
+                        }
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+
             composable("settings") {
                 SettingScreen(
                     viewModel = settingsViewModel,
@@ -260,6 +305,11 @@ fun BottomNavBar(
             label = { Text("Profile")}
         )
     }
+
+}
+
+fun buildRoomId(a: String, b: String): String {
+    return if (a < b) "${a}_$b" else "${b}_$a"
 }
 
 // Temporary placeholder screens, remove functions once actual screens are implemented

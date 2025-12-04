@@ -9,6 +9,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.firestore.FieldPath
+
 
 class UserRepository(
     private val firestore: FirebaseFirestore,
@@ -69,6 +71,7 @@ class UserRepository(
                 )
             } ?: emptyList()
 
+            // don't include the current user in list
             // push new list of students to flow
             trySend(students.filter({ it.uid != auth.currentUser?.uid }))
         }
@@ -136,6 +139,30 @@ class UserRepository(
         }
     }
 
+    suspend fun unlink(targetUid: String) {
+        val myUid = auth.currentUser?.uid ?: return
+
+        val batch = firestore.batch() // ensures all deletions are atomic --> also across one network
+
+        val host = firestore.collection("users").document(myUid)
+        val target = firestore.collection("users").document(targetUid)
+
+        // remove target's interest and match from the host subcollections
+        batch.delete(host.collection("interests").document(targetUid))
+        batch.delete(host.collection("matches").document(targetUid))
+
+        // remove user's interest and match from the target's subcollections
+        batch.delete(target.collection("interests").document(myUid))
+        batch.delete(target.collection("matches").document(myUid))
+
+        try {
+            batch.commit().await()
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Batch unlink failed", e)
+            throw e
+        }
+    }
+
     // returns a list of uids of all matched users
     suspend fun getMatchedUserIds(): List<String> {
         val userId = auth.currentUser?.uid ?: return emptyList()
@@ -147,6 +174,35 @@ class UserRepository(
             .await()
         return snapshot.documents.map { it.id }
     }
+
+    data class MatchedUser(
+        val uid: String,
+        val name: String
+    )
+
+    suspend fun getMatchedUsers(): List<MatchedUser> {
+        val myUid = auth.currentUser?.uid ?: return emptyList()
+
+        val matchesSnapshot = firestore
+            .collection("users")
+            .document(myUid)
+            .collection("matches")
+            .get()
+            .await()
+
+        val matchedIds = matchesSnapshot.documents.map { it.id }
+        if (matchedIds.isEmpty()) return emptyList()
+
+        val users = mutableListOf<MatchedUser>()
+        for (id in matchedIds) {
+            val doc = firestore.collection("users").document(id).get().await()
+            val name = doc.getString("name") ?: continue
+            users.add(MatchedUser(uid = id, name = name))
+        }
+
+        return users
+    }
+
 
     // removes the deleted user's id from others' interests and matches subcollections in firebase
     // cleans up database when a user is deleted

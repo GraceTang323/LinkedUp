@@ -16,15 +16,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,8 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cs407.linkedup.repo.UserRepository
 import java.util.concurrent.TimeUnit
-
 
 data class ChatPreview(
     val userId: String,
@@ -45,46 +51,44 @@ data class ChatPreview(
 
 @Composable
 fun ChatScreen(
-    onChatClick: (String) -> Unit = {}
+    repository: UserRepository,
+    currentUserId: String,
+    onChatClick: (roomId: String, userName: String) -> Unit = { _, _ -> },
+    onAddChatClick: () -> Unit = {}
 ) {
-    // Mock data
-    val mockChats = remember {
-        listOf(
-            ChatPreview(
-                userId = "1",
-                userName = "John Smith",
-                lastMessage = "Yea let's meet up!",
-                timestamp = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1),
-                isUnread = true
-            ),
-            ChatPreview(
-                userId = "2",
-                userName = "Emma",
-                lastMessage = "That was fun!",
-                timestamp = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(3)
-            ),
-            ChatPreview(
-                userId = "3",
-                userName = "Grace",
-                lastMessage = "Did you see the ...",
-                timestamp = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
-            ),
-            ChatPreview(
-                userId = "4",
-                userName = "Artur",
-                lastMessage = "Poop",
-                timestamp = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
-            ),
-            ChatPreview(
-                userId = "5",
-                userName = "Evan",
-                lastMessage = "Did you see the ...",
-                timestamp = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
-            )
-        )
+    var chats by remember { mutableStateOf<List<ChatPreview>>(emptyList()) }
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            val matchedUsers: List<UserRepository.MatchedUser> = repository.getMatchedUsers()
+            // for now, lastMessage + timestamp are placeholders
+            chats = matchedUsers.map { mu ->
+                ChatPreview(
+                    userId = mu.uid,
+                    userName = mu.name,
+                    lastMessage = "Tap to start chatting",
+                    timestamp = System.currentTimeMillis(),
+                    isUnread = false
+                )
+            }
+        } else {
+            chats = emptyList()
+        }
     }
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddChatClick,
+                containerColor = Color(0xFF4CAF50)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "New chat"
+                )
+            }
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -109,15 +113,18 @@ fun ChatScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Chat List
+            // Chat list
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(mockChats) { chat ->
+                items(chats) { chat ->
                     ChatPreviewItem(
                         chat = chat,
-                        onClick = { onChatClick(chat.userId) }
+                        onClick = {
+                            val roomId = buildRoomId(currentUserId, chat.userId)
+                            onChatClick(roomId, chat.userName)
+                        }
                     )
                 }
             }
