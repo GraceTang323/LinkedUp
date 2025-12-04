@@ -66,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.cs407.linkedup.R
+import com.cs407.linkedup.repo.UserRepository
 import com.cs407.linkedup.ui.theme.mintGreen
 import com.cs407.linkedup.viewmodels.MapViewModel
 import com.cs407.linkedup.viewmodels.SettingsViewModel
@@ -85,10 +86,12 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(
-    mapViewModel: MapViewModel,
-    settingsViewModel: SettingsViewModel,
+    repository: UserRepository,
     onStartTalking: () -> Unit
 ) {
+    val mapViewModel = remember { MapViewModel(repository) }
+    val settingsViewModel = remember { SettingsViewModel() }
+
     // Automatically updates UI whenever data changes
     val uiState by mapViewModel.uiState.collectAsStateWithLifecycle()
     val settingsState by settingsViewModel.settingsState.collectAsStateWithLifecycle()
