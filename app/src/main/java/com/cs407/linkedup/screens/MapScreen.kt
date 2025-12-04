@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.cs407.linkedup.R
+import com.cs407.linkedup.repo.UserRepository
 import com.cs407.linkedup.ui.theme.mintGreen
 import com.cs407.linkedup.viewmodels.MapViewModel
 import com.cs407.linkedup.viewmodels.SettingsViewModel
@@ -84,9 +86,12 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(
-    mapViewModel: MapViewModel,
-    settingsViewModel: SettingsViewModel
+    repository: UserRepository,
+    onStartTalking: () -> Unit
 ) {
+    val mapViewModel = remember { MapViewModel(repository) }
+    val settingsViewModel = remember { SettingsViewModel() }
+
     // Automatically updates UI whenever data changes
     val uiState by mapViewModel.uiState.collectAsStateWithLifecycle()
     val settingsState by settingsViewModel.settingsState.collectAsStateWithLifecycle()
@@ -109,7 +114,7 @@ fun MapScreen(
             students.filter { student ->
                 SphericalUtil.computeDistanceBetween(student.location, location) / 1000.0 <= settingsState.searchRadius
             }
-        } ?: emptyList<Student>()
+        } ?: emptyList()
 
     var showUserCard by remember { mutableStateOf(false) }
     var showMatchDialog by remember { mutableStateOf(false) }
@@ -127,7 +132,7 @@ fun MapScreen(
             )
         }
     }
-
+    // Updates the match status and clears the selected student
     LaunchedEffect(isMatched) {
         when (isMatched) {
             true -> {
@@ -275,6 +280,11 @@ fun MapScreen(
                 mapViewModel.linkUp(selectedStudent!!.uid)
                 showUserCard = false
             },
+            onUnLinkClick = {
+                Log.d("MapScreen", "Un-link button clicked")
+                mapViewModel.unLink(selectedStudent!!.uid)
+                showUserCard = false
+            },
             onCloseClick = { showUserCard = false }
         )
     }
@@ -282,7 +292,10 @@ fun MapScreen(
     if (showMatchDialog) {
         MatchDialog(
             selectedStudent = selectedStudent,
-            onStartTalking = { showMatchDialog = false }, // TODO: Navigate to chat screen
+            onStartTalking = {
+                showMatchDialog = false
+                onStartTalking()
+                             },
             onLater = { showMatchDialog = false }
         )
     }
@@ -294,8 +307,12 @@ fun UserCard(
     student: Student?,
     isMatched: Boolean = false,
     onLinkUpClick: () -> Unit = {},
+    onUnLinkClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
 ) {
+
+    var showUnlinkDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -348,21 +365,37 @@ fun UserCard(
                         .padding(start = 16.dp, bottom = 8.dp)
                         .widthIn(max = 200.dp)
                 )
-
-                Button(
-                    enabled = !isMatched, // disable link up button for already matched users
-                    onClick = { onLinkUpClick() },
-                    colors = ButtonDefaults.buttonColors(Color(0xff209640)),
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                ) {
-                    Icon( // change Link Up button icon if better icon is found
-                        Icons.AutoMirrored.Filled.CompareArrows,
-                        contentDescription = "Link Up"
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Link UP")
+                if (!isMatched) {
+                    // show link up button only for un-matched users
+                    Button(
+                        onClick = { onLinkUpClick() },
+                        colors = ButtonDefaults.buttonColors(Color(0xff209640)),
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 16.dp, start = 16.dp)
+                    ) {
+                        Icon( // change Link Up button icon if better icon is found
+                            Icons.AutoMirrored.Filled.CompareArrows,
+                            contentDescription = "Link Up"
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Link UP")
+                    }
+                } else { // show UN-link button only for matched users
+                    Button(
+                        onClick = { showUnlinkDialog = true },
+                        colors = ButtonDefaults.buttonColors(Color(0xFFDC143C)),
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 16.dp, start = 16.dp)
+                    ) {
+                        Icon( // change Link Up button icon if better icon is found
+                            Icons.AutoMirrored.Filled.CompareArrows,
+                            contentDescription = "Un-Link"
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Un-Link")
+                    }
                 }
             }
 
@@ -380,6 +413,18 @@ fun UserCard(
                 )
             }
         }
+    }
+
+    if (showUnlinkDialog) {
+        AlertDeleteDialog(
+            onDismissRequest = { showUnlinkDialog = false },
+            onConfirm = {
+                onUnLinkClick()
+                showUnlinkDialog = false
+            },
+            dialogTitle = "Unlink with ${student?.name}?",
+            dialogText = stringResource(R.string.unlink_text)
+        )
     }
 }
 
@@ -439,60 +484,4 @@ fun MatchDialog(
 @Composable
 fun PreviewUserCard() {
     UserCard(student = null)
-}
-
-// Custom map marker, potentially use to display other students?
-@Composable
-fun MapMarker(
-    imageUrl: String?,
-    name: String,
-    location: LatLng,
-    onClick: () -> Unit
-) {
-    val markerState = remember { MarkerState(position = location) }
-    val shape = RoundedCornerShape(
-        20.dp, 20.dp,
-        20.dp, 20.dp
-    )
-    val painter = rememberAsyncImagePainter(
-        ImageRequest.Builder(LocalContext.current)
-            .data(imageUrl)
-            .build()
-    )
-
-    MarkerComposable(
-        keys = arrayOf(name, painter.state),
-        state = markerState,
-        title = name,
-        anchor = Offset(0.5f, 1f),
-        onClick = {
-            onClick()
-            true
-        }
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(shape)
-                .background(Color.LightGray)
-                .padding(4.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (!imageUrl.isNullOrEmpty()) {
-                Image(
-                    painter = painter,
-                    contentDescription = "${name}'s Profile",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Text(
-                    text = name.take(1).uppercase(),
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-        }
-    }
 }
