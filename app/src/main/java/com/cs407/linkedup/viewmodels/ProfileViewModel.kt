@@ -72,6 +72,7 @@ class ProfileViewModel: ViewModel() {
                 major = "",
                 bio = "",
                 isLoading = true,
+                preferences = UserPreferences(),
                 error = null
             )
             try {
@@ -83,6 +84,10 @@ class ProfileViewModel: ViewModel() {
                             name = document.getString("name") ?: "",
                             major = document.getString("major") ?: "",
                             bio = document.getString("bio") ?: "",
+                            preferences = UserPreferences(
+                                interests = document.get("interestPrefs") as? List<String> ?: emptyList(),
+                                classes = document.get("classes") as? List<String> ?: emptyList()
+                                ),
                             isLoading = false,
                             error = null
                         )
