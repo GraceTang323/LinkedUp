@@ -180,10 +180,10 @@ fun CreateProfileScreen(
             )
 
             // Form fields
-            PhoneNumberField(phoneNumber) { phoneNumber = it }
-            nameTextField(name) { name = it }
-            majorTextField(major) { major = it }
-            bioTextField(bio) { bio = it }
+            PhoneNumberField(phoneNumber,{ phoneNumber = it })
+            nameTextField(name, { name = it })
+            majorTextField(major, { major = it } )
+            bioTextField(bio, { bio = it } )
 
             // Error messages from AuthViewModel
             if (authState.error != null) {
@@ -298,11 +298,13 @@ fun changePictureButton(
 @Composable
 fun nameTextField(
     name: String,
-    onNameChange: (String) -> Unit
+    onNameChange: (String) -> Unit,
+    isEditing: Boolean = true
 ) {
     OutlinedTextField(
         value = name,
         onValueChange = onNameChange,
+        readOnly = !isEditing,
         label = { Text(stringResource(id = R.string.name_label)) },
         placeholder = {
             Text(
@@ -331,11 +333,13 @@ fun nameTextField(
 @Composable
 fun majorTextField(
     major: String,
-    onMajorChange: (String) -> Unit
+    onMajorChange: (String) -> Unit,
+    isEditing: Boolean = true
 ) {
     OutlinedTextField(
         value = major,
         onValueChange = onMajorChange,
+        readOnly = !isEditing,
         label = { Text(stringResource(id = R.string.major_label)) },
         placeholder = {
             Text(
@@ -364,11 +368,13 @@ fun majorTextField(
 @Composable
 fun bioTextField(
     bio: String,
-    onBioChange: (String) -> Unit
+    onBioChange: (String) -> Unit,
+    isEditing: Boolean = true
 ) {
     OutlinedTextField(
         value = bio,
         onValueChange = onBioChange,
+        readOnly = !isEditing,
         label = { Text(stringResource(id = R.string.bio_label)) },
         leadingIcon = {
             Box(
@@ -434,7 +440,8 @@ fun formatPhoneNumber(digits: String): String {
 @Composable
 fun PhoneNumberField(
     number: String,
-    onNumberChange: (String) -> Unit
+    onNumberChange: (String) -> Unit,
+    isEditing: Boolean = true
 ) {
     OutlinedTextField(
         value = number,
@@ -444,6 +451,7 @@ fun PhoneNumberField(
             val formatted = formatPhoneNumber(digits)
             onNumberChange(formatted)
         },
+        readOnly = !isEditing,
         leadingIcon = {
             Icon(
                 Icons.Default.Phone,

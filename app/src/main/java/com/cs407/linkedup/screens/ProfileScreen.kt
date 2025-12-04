@@ -329,11 +329,12 @@ fun ProfileScreen(
 //                    )
                 PhoneNumberField(
                     phoneNumber,
-                    { input -> phoneNumber = input }
+                    { input -> phoneNumber = input },
+                    isEditing
                 )
-                nameTextField(name, { input -> name = input })
-                majorTextField(major, { input -> major = input })
-                bioTextField(bio, { input -> bio = input })
+                nameTextField(name, { input -> name = input }, isEditing)
+                majorTextField(major, { input -> major = input }, isEditing)
+                bioTextField(bio, { input -> bio = input }, isEditing)
                 if(isEditing) {
                     saveProfileButton(
                         profileViewModel = profileViewModel,
