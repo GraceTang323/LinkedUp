@@ -9,6 +9,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.firestore.FieldPath
+
 
 class UserRepository(
     private val firestore: FirebaseFirestore,
@@ -172,6 +174,35 @@ class UserRepository(
             .await()
         return snapshot.documents.map { it.id }
     }
+
+    data class MatchedUser(
+        val uid: String,
+        val name: String
+    )
+
+    suspend fun getMatchedUsers(): List<MatchedUser> {
+        val myUid = auth.currentUser?.uid ?: return emptyList()
+
+        val matchesSnapshot = firestore
+            .collection("users")
+            .document(myUid)
+            .collection("matches")
+            .get()
+            .await()
+
+        val matchedIds = matchesSnapshot.documents.map { it.id }
+        if (matchedIds.isEmpty()) return emptyList()
+
+        val users = mutableListOf<MatchedUser>()
+        for (id in matchedIds) {
+            val doc = firestore.collection("users").document(id).get().await()
+            val name = doc.getString("name") ?: continue
+            users.add(MatchedUser(uid = id, name = name))
+        }
+
+        return users
+    }
+
 
     // removes the deleted user's id from others' interests and matches subcollections in firebase
     // cleans up database when a user is deleted
