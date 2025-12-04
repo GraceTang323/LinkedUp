@@ -195,6 +195,13 @@ class MapViewModel(
             _matchStatus.value = matched
         }
     }
+
+    fun unLink(targetUid: String) {
+        viewModelScope.launch {
+            repository.unlink(targetUid)
+        }
+    }
+
     // Cleans the match status for future matches
     fun clearMatch() {
         _matchStatus.value = null
