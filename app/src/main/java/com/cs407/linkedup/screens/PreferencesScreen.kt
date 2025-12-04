@@ -1,5 +1,6 @@
 package com.cs407.linkedup.screens
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +44,8 @@ import com.cs407.linkedup.ui.theme.gray
 import com.cs407.linkedup.ui.theme.mintGreen
 import com.cs407.linkedup.viewmodels.AuthViewModel
 import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.cs407.linkedup.ui.theme.black
 import com.cs407.linkedup.viewmodels.ProfileViewModel
 
@@ -78,8 +81,22 @@ fun PreferencesScreen(
     onSaveClick: () -> Unit,
     profileViewModel: ProfileViewModel
 ) {
-    var selectedInterests by remember { mutableStateOf(setOf<String>()) }
-    var selectedClasses by remember { mutableStateOf(setOf<String>()) }
+    val profileState by profileViewModel.profileState.collectAsState()
+//    var selectedInterests by remember { mutableStateOf(setOf<String>()) }
+   // var selectedClasses by remember { mutableStateOf(setOf<String>()) }
+
+    var selectedInterests by remember(profileState.preferences.interests) {
+        mutableStateOf(profileState.preferences.interests.toSet())
+    }
+
+    var selectedClasses by remember(profileState.preferences.classes) {
+        mutableStateOf(profileState.preferences.classes.toSet())
+    }
+
+    Log.d("prefs", selectedInterests.toString())
+    Log.d("prefs", selectedClasses.toString())
+
+
 
     fun toggleInterest(interest: String) {
         selectedInterests = if (selectedInterests.contains(interest)) {

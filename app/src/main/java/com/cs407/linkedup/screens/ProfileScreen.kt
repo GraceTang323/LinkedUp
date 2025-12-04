@@ -1,6 +1,7 @@
 package com.cs407.linkedup.screens
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -174,8 +175,8 @@ fun editButton(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    authViewModel: AuthViewModel = viewModel(),
-    profileViewModel: ProfileViewModel = viewModel(),
+    authViewModel: AuthViewModel,
+    profileViewModel: ProfileViewModel,
     hasPhotoAccess: () -> Boolean,
     requestPhotoAccess: () -> Unit,
     onLogout: () -> Unit,
@@ -190,6 +191,15 @@ fun ProfileScreen(
     var major by remember{ mutableStateOf(profileState.major) }
     var bio by remember{ mutableStateOf(profileState.bio) }
     var phoneNumber by remember { mutableStateOf(profileState.phoneNumber) }
+
+    LaunchedEffect(authState.currentUser){
+        profileViewModel.loadProfile(authState.currentUser?.uid)
+        name = profileState.name
+        major = profileState.major
+        bio = profileState.bio
+        phoneNumber = profileState.phoneNumber
+        Log.d("userId", authState.currentUser?.uid.toString())
+    }
 
     var isEditing by remember{ mutableStateOf(false) }
 
@@ -326,7 +336,12 @@ fun ProfileScreen(
                         { isEditing = false }
                     )
                 } else {
-                    editButton({ isEditing = true })
+                    editButton({
+                        isEditing = true
+                        Log.d("userId", profileState.bio)
+                        Log.d("userId", profileViewModel.profileState.value.bio)
+                        Log.d("userId", authState.currentUser?.uid.toString())
+                    })
                 }
 //                Row() {
 //                    logoutButton(authViewModel, onLogout)

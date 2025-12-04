@@ -1,5 +1,6 @@
 package com.cs407.linkedup.screens
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement.Absolute.spacedBy
 import androidx.compose.foundation.layout.Column
@@ -152,8 +153,8 @@ fun LoginButton(
 fun LoginScreen (
     onCreateAccountClick: () -> Unit,
     onLoginSuccess: () -> Unit,
-    authViewModel: AuthViewModel = viewModel(),
-    profileViewModel: ProfileViewModel = viewModel()
+    authViewModel: AuthViewModel,
+    profileViewModel: ProfileViewModel
 ){
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("")}
@@ -162,6 +163,8 @@ fun LoginScreen (
 
     LaunchedEffect(authState.isSuccess) {
         if (authState.isSuccess && authState.currentUser != null) {
+            profileViewModel.loadProfile(authState.currentUser?.uid)
+            Log.d("userId", "logged in at login screen as: " + authState.currentUser?.uid.toString())
             onLoginSuccess()
         }
     }
@@ -202,7 +205,6 @@ fun LoginScreen (
             // Login button
             LoginButton(onLoginClick = {
                 authViewModel.login(email, password)
-//                profileViewModel.loadProfile(authState.currentUser?.uid)
             })
         }
     }
