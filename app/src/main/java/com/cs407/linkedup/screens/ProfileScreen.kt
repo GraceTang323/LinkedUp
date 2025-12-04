@@ -187,6 +187,8 @@ fun ProfileScreen(
     val profileState by profileViewModel.profileState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    var deleteConfirmed by remember { mutableStateOf(false) }
+
     var name by remember{ mutableStateOf(profileState.name) }
     var major by remember{ mutableStateOf(profileState.major) }
     var bio by remember{ mutableStateOf(profileState.bio) }
@@ -199,6 +201,12 @@ fun ProfileScreen(
         bio = profileState.bio
         phoneNumber = profileState.phoneNumber
         Log.d("userId", authState.currentUser?.uid.toString())
+    }
+
+    LaunchedEffect(authState.currentUser) {
+        if(deleteConfirmed && authState.currentUser == null){
+            onDelete()
+        }
     }
 
     var isEditing by remember{ mutableStateOf(false) }
@@ -321,11 +329,12 @@ fun ProfileScreen(
 //                    )
                 PhoneNumberField(
                     phoneNumber,
-                    { input -> phoneNumber = input }
+                    { input -> phoneNumber = input },
+                    isEditing
                 )
-                nameTextField(name, { input -> name = input })
-                majorTextField(major, { input -> major = input })
-                bioTextField(bio, { input -> bio = input })
+                nameTextField(name, { input -> name = input }, isEditing)
+                majorTextField(major, { input -> major = input }, isEditing)
+                bioTextField(bio, { input -> bio = input }, isEditing)
                 if(isEditing) {
                     saveProfileButton(
                         profileViewModel = profileViewModel,
@@ -364,7 +373,7 @@ fun ProfileScreen(
                     onDismissRequest = { showDeleteDialog = false },
                     onConfirm = {
                         authViewModel.deleteAccount()
-                        onDelete()
+                        deleteConfirmed = true
                         showDeleteDialog = false
                     },
                     dialogTitle = stringResource(R.string.delete_title),
