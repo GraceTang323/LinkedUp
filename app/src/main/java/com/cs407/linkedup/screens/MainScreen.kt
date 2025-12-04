@@ -41,6 +41,8 @@ import com.cs407.linkedup.viewmodels.AuthViewModel
 import com.cs407.linkedup.viewmodels.MapViewModel
 import com.cs407.linkedup.viewmodels.ProfileViewModel
 import com.cs407.linkedup.viewmodels.SettingsViewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,7 +173,24 @@ fun MainScreen(
                 )
             }
             composable("home") { MapScreen(mapViewModel = mapViewModel, settingsViewModel = settingsViewModel) }
-            composable("chat") { ChatsScreenPlaceholder() }
+            composable("chat") {
+                ChatScreen(
+                    onChatClick = { userId ->
+                        navController.navigate("chat_detail/$userId")
+                    }
+                )
+            }
+
+            composable(
+                route = "chat_detail/{userId}",
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                ChatDetailScreen(
+                    userName = "John Smith",
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
             composable("settings") {
                 SettingScreen(
                     viewModel = settingsViewModel,
@@ -247,13 +266,5 @@ fun BottomNavBar(
 }
 
 // Temporary placeholder screens, remove functions once actual screens are implemented
-@Composable
-fun ChatsScreenPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Chats Screen Coming Soon")
-    }
-}
+
 
