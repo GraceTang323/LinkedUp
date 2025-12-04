@@ -85,7 +85,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun MapScreen(
     mapViewModel: MapViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    onStartTalking: () -> Unit
 ) {
     // Automatically updates UI whenever data changes
     val uiState by mapViewModel.uiState.collectAsStateWithLifecycle()
@@ -282,7 +283,10 @@ fun MapScreen(
     if (showMatchDialog) {
         MatchDialog(
             selectedStudent = selectedStudent,
-            onStartTalking = { showMatchDialog = false }, // TODO: Navigate to chat screen
+            onStartTalking = {
+                showMatchDialog = false
+                onStartTalking()
+                             },
             onLater = { showMatchDialog = false }
         )
     }

@@ -172,7 +172,15 @@ fun MainScreen(
                     }
                 )
             }
-            composable("home") { MapScreen(mapViewModel = mapViewModel, settingsViewModel = settingsViewModel) }
+            composable("home") {
+                MapScreen(
+                    mapViewModel = mapViewModel,
+                    settingsViewModel = settingsViewModel,
+                    onStartTalking = {
+                        navController.navigate("chat")
+                    }
+                )
+            }
             composable("chat") {
                 ChatScreen(
                     onChatClick = { userId ->
