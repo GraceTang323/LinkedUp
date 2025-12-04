@@ -128,7 +128,9 @@ fun MainScreen(
                         navController.navigate("home") {
                             popUpTo("login") { inclusive = true }
                         }
-                    }
+                    },
+                    authViewModel = authViewModel,
+                    profileViewModel = profileViewModel
                 )
             }
             composable("create_account") {

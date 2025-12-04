@@ -66,9 +66,15 @@ class ProfileViewModel: ViewModel() {
 
     fun loadProfile(uid: String?) {
         viewModelScope.launch {
+            _profileState.value = ProfileState(
+                phoneNumber = "",
+                name = "",
+                major = "",
+                bio = "",
+                isLoading = true,
+                error = null
+            )
             try {
-                _profileState.value = _profileState.value.copy(isLoading = true)
-
                 if (uid != null) {
                     val document = db.collection("users").document(uid).get().await()
                     if (document.exists()) {
@@ -81,10 +87,10 @@ class ProfileViewModel: ViewModel() {
                             error = null
                         )
                     } else {
-                        _profileState.value = _profileState.value.copy(isLoading = false)
+                        _profileState.value = _profileState.value.copy(isLoading = false, error = "No info found")
                     }
                 } else {
-                    _profileState.value = _profileState.value.copy(isLoading = false)
+                    _profileState.value = _profileState.value.copy(isLoading = false, error = "No user signed in")
                 }
             } catch (e: Exception) {
                 Log.e("ProfileViewModel", "Error loading profile", e)
@@ -114,6 +120,7 @@ class ProfileViewModel: ViewModel() {
 
             try {
                 val uid = auth.currentUser?.uid ?: return@launch
+                Log.d("userId", uid)
                 db.collection("users").document(uid)
                     .update(
                         "name", name,
@@ -131,8 +138,7 @@ class ProfileViewModel: ViewModel() {
                     error = null
                 )
             } catch (e: Exception) {
-                _profileState.value = _profileState.value.copy(isLoading = false, error = "Error updating profile"
-                )
+                _profileState.value = _profileState.value.copy(isLoading = false, error = "Error updating profile")
             }
         }
 
