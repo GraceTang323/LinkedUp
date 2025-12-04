@@ -35,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +81,18 @@ fun CreateProfileScreen(
     var bio by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Load photo from Firebase when screen is displayed
+    LaunchedEffect(Unit) {
+        photoViewModel.loadProfilePhoto()
+    }
+
+    // Update local imageUri when photo is loaded from Firebase
+    LaunchedEffect(photoState.photoUrl) {
+        if (photoState.photoUrl != null && imageUri == null) {
+            imageUri = Uri.parse(photoState.photoUrl)
+        }
+    }
 
     // Determine correct permission based on Android version
     // Android 13+ uses READ_MEDIA_IMAGES, older versions use READ_EXTERNAL_STORAGE

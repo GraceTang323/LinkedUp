@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.concurrent.TimeUnit
 
-// 数据类 - 你的组员会用实际数据替换
+
 data class ChatPreview(
     val userId: String,
     val userName: String,
@@ -47,7 +47,7 @@ data class ChatPreview(
 fun ChatScreen(
     onChatClick: (String) -> Unit = {}
 ) {
-    // Mock data - 你的组员会替换成真实数据
+    // Mock data
     val mockChats = remember {
         listOf(
             ChatPreview(
