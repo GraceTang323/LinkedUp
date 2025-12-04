@@ -43,18 +43,27 @@ import com.cs407.linkedup.viewmodels.ProfileViewModel
 import com.cs407.linkedup.viewmodels.SettingsViewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    repository: UserRepository,
     authViewModel: AuthViewModel = viewModel(),
     navController: NavHostController = rememberNavController()
 ) {
-    val mapViewModel = remember { MapViewModel(repository) }
+    val authState by authViewModel.authState.collectAsState()
+
+    val repository = remember(authState.currentUser?.uid) {
+        UserRepository(
+            FirebaseFirestore.getInstance(),
+            FirebaseAuth.getInstance()
+        )
+    }
+
+    val mapViewModel: MapViewModel = remember { MapViewModel(repository) }
     val settingsViewModel = remember { SettingsViewModel() }
     val profileViewModel = remember { ProfileViewModel() }
-    val authState by authViewModel.authState.collectAsState()
     val profileState by profileViewModel.profileState.collectAsState()
 
 
@@ -171,8 +180,8 @@ fun MainScreen(
             }
             composable("home") {
                 MapScreen(
-                    mapViewModel = mapViewModel,
-                    settingsViewModel = settingsViewModel,
+                    repository = repository,
+                    // settingsViewModel = settingsViewModel,
                     onStartTalking = {
                         navController.navigate("chat")
                     }
