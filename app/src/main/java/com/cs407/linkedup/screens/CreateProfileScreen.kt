@@ -55,6 +55,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.cs407.linkedup.R
 import com.cs407.linkedup.viewmodels.AuthViewModel
 import com.cs407.linkedup.viewmodels.PhotoViewModel
+import com.cs407.linkedup.viewmodels.ProfileViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -67,9 +68,10 @@ import com.google.accompanist.permissions.shouldShowRationale
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CreateProfileScreen(
-    viewModel: AuthViewModel = viewModel(),
+    viewModel: AuthViewModel,
     photoViewModel: PhotoViewModel = viewModel(),
     onCreateProfileSuccess: () -> Unit,
+    profileViewModel: ProfileViewModel
 ) {
     // Collect state from ViewModels
     val authState by viewModel.authState.collectAsState()
@@ -207,6 +209,7 @@ fun CreateProfileScreen(
             nextButton {
                 if (name.isNotBlank() && major.isNotBlank() && phoneNumber.isNotBlank()) {
                     viewModel.saveProfile(name, major, bio, stringifyPhoneNumber(phoneNumber))
+                    profileViewModel.loadProfile(authState.currentUser?.uid)
                     onCreateProfileSuccess()
                 }
             }

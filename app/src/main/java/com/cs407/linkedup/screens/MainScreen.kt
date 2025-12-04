@@ -146,13 +146,16 @@ fun MainScreen(
             }
             composable("create_account") {
                 CreateAccountScreen(
+                    viewModel = authViewModel,
                     onCreateAccountSuccess = { navController.navigate("create_profile") },
                     onBackClick = { navController.navigate("login") }
                 )
             }
             composable("create_profile") {
                 CreateProfileScreen(
-                    onCreateProfileSuccess = { navController.navigate("preferences_screen") }
+                    viewModel = authViewModel,
+                    onCreateProfileSuccess = { navController.navigate("preferences_screen") },
+                    profileViewModel = profileViewModel
                 )
             }
             composable("preferences_screen") {

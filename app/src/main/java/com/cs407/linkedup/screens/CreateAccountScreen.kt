@@ -137,7 +137,7 @@ fun AccountButton(
 }
 @Composable
 fun CreateAccountScreen(
-    viewModel: AuthViewModel = viewModel(),
+    viewModel: AuthViewModel,
     onCreateAccountSuccess: () -> Unit,
     onBackClick: () -> Unit
 ){
