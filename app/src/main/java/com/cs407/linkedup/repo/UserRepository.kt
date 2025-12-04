@@ -137,6 +137,30 @@ class UserRepository(
         }
     }
 
+    suspend fun unlink(targetUid: String) {
+        val myUid = auth.currentUser?.uid ?: return
+
+        val batch = firestore.batch() // ensures all deletions are atomic --> also across one network
+
+        val host = firestore.collection("users").document(myUid)
+        val target = firestore.collection("users").document(targetUid)
+
+        // remove target's interest and match from the host subcollections
+        batch.delete(host.collection("interests").document(targetUid))
+        batch.delete(host.collection("matches").document(targetUid))
+
+        // remove user's interest and match from the target's subcollections
+        batch.delete(target.collection("interests").document(myUid))
+        batch.delete(target.collection("matches").document(myUid))
+
+        try {
+            batch.commit().await()
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Batch unlink failed", e)
+            throw e
+        }
+    }
+
     // returns a list of uids of all matched users
     suspend fun getMatchedUserIds(): List<String> {
         val userId = auth.currentUser?.uid ?: return emptyList()
