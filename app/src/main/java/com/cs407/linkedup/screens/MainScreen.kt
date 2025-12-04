@@ -141,9 +141,6 @@ fun MainScreen(
             }
             composable("create_profile") {
                 CreateProfileScreen(
-                    //TODO: PLACEHOLDER FUNCTIONS MUST BE REPLACED
-                    hasPhotoAccess = { true },
-                    requestPhotoAccess = { },
                     onCreateProfileSuccess = { navController.navigate("preferences_screen") }
                 )
             }
