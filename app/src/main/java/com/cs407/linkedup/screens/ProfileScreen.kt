@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cs407.linkedup.R
 import com.cs407.linkedup.viewmodels.AuthViewModel
+import com.cs407.linkedup.viewmodels.PhotoViewModel
 import com.cs407.linkedup.viewmodels.ProfileViewModel
 
 @Composable
@@ -146,7 +147,7 @@ fun saveProfileButton(
                 Toast.makeText(context, "Successfully saved changes!", Toast.LENGTH_LONG).show()
                 changeEditStatus()
             }
-                  },
+        },
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = Color.White
@@ -177,6 +178,7 @@ fun editButton(
 fun ProfileScreen(
     authViewModel: AuthViewModel,
     profileViewModel: ProfileViewModel,
+    photoViewModel: PhotoViewModel = viewModel(),
     hasPhotoAccess: () -> Boolean,
     requestPhotoAccess: () -> Unit,
     onLogout: () -> Unit,
@@ -185,8 +187,10 @@ fun ProfileScreen(
 ) {
     val authState by authViewModel.authState.collectAsState()
     val profileState by profileViewModel.profileState.collectAsState()
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    val photoState by photoViewModel.photoState.collectAsState()
+    val context = LocalContext.current  // ⭐ 需要 context 来读取图片
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
     var deleteConfirmed by remember { mutableStateOf(false) }
 
     var name by remember{ mutableStateOf(profileState.name) }
@@ -194,13 +198,24 @@ fun ProfileScreen(
     var bio by remember{ mutableStateOf(profileState.bio) }
     var phoneNumber by remember { mutableStateOf(profileState.phoneNumber) }
 
+    // ⭐ 本地图片 URI，用于立即显示选择的图片
+    var localImageUri by remember { mutableStateOf<Uri?>(null) }
+
     LaunchedEffect(authState.currentUser){
         profileViewModel.loadProfile(authState.currentUser?.uid)
+        photoViewModel.loadProfilePhoto()
         name = profileState.name
         major = profileState.major
         bio = profileState.bio
         phoneNumber = profileState.phoneNumber
         Log.d("userId", authState.currentUser?.uid.toString())
+    }
+
+    // ⭐ 上传完成后清空本地预览
+    LaunchedEffect(photoState.photoBase64) {
+        if (photoState.photoBase64 != null && !photoState.isUploading) {
+            localImageUri = null  // Clear local preview, use Base64 from Firestore now
+        }
     }
 
     LaunchedEffect(authState.currentUser) {
@@ -210,19 +225,16 @@ fun ProfileScreen(
     }
 
     var isEditing by remember{ mutableStateOf(false) }
-
     var expandedMenu by remember{ mutableStateOf(value = false) }
 
-
-
-    //TODO: Placeholder variable, this should eventually be obtained from a viewmodel
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-
-    //Launcher that will prompt the user to choose an image when launcher.launch is called
+    // ⭐ Launcher 需要传入 context
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        imageUri = uri
+        uri?.let {
+            localImageUri = it  // Show immediately
+            photoViewModel.uploadProfilePhoto(it, context)  // Upload as Base64
+        }
     }
 
     Scaffold(
@@ -288,7 +300,7 @@ fun ProfileScreen(
                             text = { Text(
                                 stringResource(id = R.string.delete_button),
                                 color = Color.Red
-                                ) },
+                            ) },
                             trailingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -307,81 +319,99 @@ fun ProfileScreen(
             )
         }
     ) { innerPadding ->
-            //These functions are defined in CreateProfileScreen
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(2.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                profilePicture(imageUri)
-                    changePictureButton(
-                        onButtonClick = { launcher.launch("image/*") },
-                        hasPhotoAccess = hasPhotoAccess,
-                        requestPhotoAccess = requestPhotoAccess
-                    )
+        //These functions are defined in CreateProfileScreen
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(2.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // ⭐ 传入本地 URI 和 Base64 字符串
+            profilePicture(
+                imageUri = localImageUri,
+                base64String = photoState.photoBase64
+            )
 
-//                    prefButton(
-//                        viewModel = profileViewModel,
-//                        onPrefClick = onPrefClick
-//                    )
-                PhoneNumberField(
-                    phoneNumber,
-                    { input -> phoneNumber = input },
-                    isEditing
-                )
-                nameTextField(name, { input -> name = input }, isEditing)
-                majorTextField(major, { input -> major = input }, isEditing)
-                bioTextField(bio, { input -> bio = input }, isEditing)
-                if(isEditing) {
-                    saveProfileButton(
-                        profileViewModel = profileViewModel,
-                        phoneNumber = phoneNumber,
-                        name = name,
-                        major = major,
-                        bio = bio,
-                        { isEditing = false }
-                    )
-                } else {
-                    editButton({
-                        isEditing = true
-                        Log.d("userId", profileState.bio)
-                        Log.d("userId", profileViewModel.profileState.value.bio)
-                        Log.d("userId", authState.currentUser?.uid.toString())
-                    })
-                }
-//                Row() {
-//                    logoutButton(authViewModel, onLogout)
-//                    deleteAccountButton(onDeleteClick = { showDeleteDialog = true })
-//                }
-            }
+            changePictureButton(
+                onButtonClick = { launcher.launch("image/*") },
+                hasPhotoAccess = hasPhotoAccess,
+                requestPhotoAccess = requestPhotoAccess
+            )
 
-            // error message, if any
-            if (authState.error != null) {
-                Spacer(modifier = Modifier.height(8.dp))
+            // 显示上传进度
+            if (photoState.isUploading) {
                 Text(
-                    text = authState.error ?: "",
-                    color = Color.Red,
-                    fontSize = 14.sp
+                    text = "Uploading... ${photoState.uploadProgress.toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(4.dp)
                 )
             }
 
-            if (showDeleteDialog) {
-                AlertDeleteDialog(
-                    onDismissRequest = { showDeleteDialog = false },
-                    onConfirm = {
-                        authViewModel.deleteAccount()
-                        deleteConfirmed = true
-                        showDeleteDialog = false
-                    },
-                    dialogTitle = stringResource(R.string.delete_title),
-                    dialogText = stringResource(R.string.delete_text)
+            // 显示错误信息
+            photoState.error?.let { error ->
+                Text(
+                    text = error,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(4.dp)
                 )
+            }
+
+            PhoneNumberField(
+                phoneNumber,
+                { input -> phoneNumber = input },
+                isEditing
+            )
+            nameTextField(name, { input -> name = input }, isEditing)
+            majorTextField(major, { input -> major = input }, isEditing)
+            bioTextField(bio, { input -> bio = input }, isEditing)
+
+            if(isEditing) {
+                saveProfileButton(
+                    profileViewModel = profileViewModel,
+                    phoneNumber = phoneNumber,
+                    name = name,
+                    major = major,
+                    bio = bio,
+                    { isEditing = false }
+                )
+            } else {
+                editButton({
+                    isEditing = true
+                    Log.d("userId", profileState.bio)
+                    Log.d("userId", profileViewModel.profileState.value.bio)
+                    Log.d("userId", authState.currentUser?.uid.toString())
+                })
             }
         }
+
+        // error message, if any
+        if (authState.error != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = authState.error ?: "",
+                color = Color.Red,
+                fontSize = 14.sp
+            )
+        }
+
+        if (showDeleteDialog) {
+            AlertDeleteDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                onConfirm = {
+                    authViewModel.deleteAccount()
+                    deleteConfirmed = true
+                    showDeleteDialog = false
+                },
+                dialogTitle = stringResource(R.string.delete_title),
+                dialogText = stringResource(R.string.delete_text)
+            )
+        }
     }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

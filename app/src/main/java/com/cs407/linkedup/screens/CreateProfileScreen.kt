@@ -1,8 +1,10 @@
 package com.cs407.linkedup.screens
 
 import android.Manifest
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
+import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -45,13 +47,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.cs407.linkedup.R
 import com.cs407.linkedup.viewmodels.AuthViewModel
 import com.cs407.linkedup.viewmodels.PhotoViewModel
@@ -76,6 +80,7 @@ fun CreateProfileScreen(
     // Collect state from ViewModels
     val authState by viewModel.authState.collectAsState()
     val photoState by photoViewModel.photoState.collectAsState()
+    val context = LocalContext.current
 
     // Local state for form fields
     var name by remember { mutableStateOf("") }
@@ -89,15 +94,14 @@ fun CreateProfileScreen(
         photoViewModel.loadProfilePhoto()
     }
 
-    // Update local imageUri when photo is loaded from Firebase
-    LaunchedEffect(photoState.photoUrl) {
-        if (photoState.photoUrl != null && imageUri == null) {
-            imageUri = Uri.parse(photoState.photoUrl)
+    // Clear local URI when upload completes
+    LaunchedEffect(photoState.photoBase64) {
+        if (photoState.photoBase64 != null && !photoState.isUploading) {
+            imageUri = null
         }
     }
 
     // Determine correct permission based on Android version
-    // Android 13+ uses READ_MEDIA_IMAGES, older versions use READ_EXTERNAL_STORAGE
     val permissionToRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_IMAGES
     } else {
@@ -108,14 +112,13 @@ fun CreateProfileScreen(
     val permissionState = rememberPermissionState(permission = permissionToRequest)
 
     // Image picker launcher
-    // When user selects an image, it immediately uploads to Firebase
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             imageUri = it
-            // Upload photo to Firebase Storage immediately
-            photoViewModel.uploadProfilePhoto(it)
+            // Upload photo as Base64 to Firestore
+            photoViewModel.uploadProfilePhoto(it, context)
         }
     }
 
@@ -130,10 +133,11 @@ fun CreateProfileScreen(
             // Header text
             headerText()
 
-            // Display profile picture
-            // Priority: local selected image > uploaded image from Firebase
-            val displayUri = imageUri ?: photoState.photoUrl?.let { Uri.parse(it) }
-            profilePicture(displayUri)
+            // Display profile picture with Base64 support
+            profilePicture(
+                imageUri = imageUri,
+                base64String = photoState.photoBase64
+            )
 
             // Upload progress indicator
             if (photoState.isUploading) {
@@ -161,15 +165,12 @@ fun CreateProfileScreen(
             changePictureButton(
                 onButtonClick = {
                     when {
-                        // Permission already granted - open picker
                         permissionState.status.isGranted -> {
                             launcher.launch("image/*")
                         }
-                        // Should show rationale - explain why we need permission
                         permissionState.status.shouldShowRationale -> {
                             permissionState.launchPermissionRequest()
                         }
-                        // First time requesting permission
                         else -> {
                             permissionState.launchPermissionRequest()
                         }
@@ -231,12 +232,27 @@ fun headerText() {
 
 /**
  * Displays circular profile picture
- * Shows placeholder icon if no image is provided
+ * Supports both local URI (immediate preview) and Base64 (from Firestore)
  *
- * @param imageUri URI of the image to display (can be local or from Firebase)
+ * @param imageUri Local URI of the image (for immediate preview)
+ * @param base64String Base64 encoded image from Firestore
  */
 @Composable
-fun profilePicture(imageUri: Uri?) {
+fun profilePicture(imageUri: Uri? = null, base64String: String? = null) {
+    // Decode Base64 outside of Composable scope to avoid try-catch issues
+    val decodedBitmap = remember(base64String) {
+        if (base64String != null && base64String.isNotEmpty()) {
+            try {
+                val imageBytes = Base64.decode(base64String, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
     Box(
         modifier = Modifier
             .size(120.dp)
@@ -244,22 +260,34 @@ fun profilePicture(imageUri: Uri?) {
             .background(Color.LightGray),
         contentAlignment = Alignment.Center
     ) {
-        if (imageUri != null) {
-            // Display actual image
-            Image(
-                painter = rememberAsyncImagePainter(model = imageUri),
-                contentDescription = "Profile Picture",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            // Display placeholder icon
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Placeholder Image",
-                modifier = Modifier.size(100.dp),
-                tint = Color.Gray
-            )
+        when {
+            // Priority 1: Show local image (immediate preview)
+            imageUri != null -> {
+                AsyncImage(
+                    model = imageUri,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            // Priority 2: Show Base64 image from Firestore
+            decodedBitmap != null -> {
+                Image(
+                    bitmap = decodedBitmap.asImageBitmap(),
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            // Priority 3: Show placeholder
+            else -> {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Placeholder Image",
+                    modifier = Modifier.size(100.dp),
+                    tint = Color.Gray
+                )
+            }
         }
     }
 }
@@ -267,10 +295,6 @@ fun profilePicture(imageUri: Uri?) {
 /**
  * Button to change profile picture
  * Handles permission checking and image selection
- *
- * @param onButtonClick Action when button is clicked
- * @param hasPhotoAccess Function to check if app has photo access permission
- * @param requestPhotoAccess Function to request photo access permission
  */
 @Composable
 fun changePictureButton(
@@ -291,9 +315,6 @@ fun changePictureButton(
 
 /**
  * Text field for user's name input
- *
- * @param name Current name value
- * @param onNameChange Callback when name changes
  */
 @Composable
 fun nameTextField(
@@ -326,9 +347,6 @@ fun nameTextField(
 
 /**
  * Text field for user's major input
- *
- * @param major Current major value
- * @param onMajorChange Callback when major changes
  */
 @Composable
 fun majorTextField(
@@ -361,9 +379,6 @@ fun majorTextField(
 
 /**
  * Multi-line text field for user's bio
- *
- * @param bio Current bio value
- * @param onBioChange Callback when bio changes
  */
 @Composable
 fun bioTextField(
@@ -405,10 +420,6 @@ fun bioTextField(
 
 /**
  * Converts phone number digits to storage format
- * Adds +1 country code for US numbers (10+ digits)
- *
- * @param digits Raw phone number digits
- * @return Formatted phone number string for storage
  */
 fun stringifyPhoneNumber(digits: String): String {
     val filtered = digits.filter { it.isDigit() }
@@ -417,10 +428,6 @@ fun stringifyPhoneNumber(digits: String): String {
 
 /**
  * Formats phone number for UI display
- * Format: (XXX) XXX-XXXX
- *
- * @param digits Raw phone number digits
- * @return Formatted phone number string for display
  */
 fun formatPhoneNumber(digits: String): String {
     return if (digits.length >= 10) {
@@ -432,10 +439,6 @@ fun formatPhoneNumber(digits: String): String {
 
 /**
  * Text field for phone number input
- * Automatically formats input as (XXX) XXX-XXXX
- *
- * @param number Current phone number value
- * @param onNumberChange Callback when number changes
  */
 @Composable
 fun PhoneNumberField(
@@ -446,7 +449,6 @@ fun PhoneNumberField(
     OutlinedTextField(
         value = number,
         onValueChange = { input ->
-            // Filter to digits only and format
             val digits = input.filter { it.isDigit() }
             val formatted = formatPhoneNumber(digits)
             onNumberChange(formatted)
@@ -467,9 +469,6 @@ fun PhoneNumberField(
 
 /**
  * Next button to proceed to next step
- * Validates and saves profile information
- *
- * @param onButtonClick Action when button is clicked
  */
 @Composable
 fun nextButton(
