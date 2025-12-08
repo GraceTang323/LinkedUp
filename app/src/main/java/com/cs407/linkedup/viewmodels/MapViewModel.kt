@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cs407.linkedup.data.UserPreferences
 import com.cs407.linkedup.repo.UserRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -26,7 +27,8 @@ data class Student(
     val major: String,
     val location: LatLng,
     val bio: String = "",
-    val profilePictureUrl: String? = null // maybe use?
+    val profilePictureUrl: String? = null, // maybe use?
+    val preferences: UserPreferences = UserPreferences()
 )
 
 data class MapState(

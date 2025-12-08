@@ -82,6 +82,9 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -310,7 +313,8 @@ fun UserCard(
     onUnLinkClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
 ) {
-
+    val interests = student?.preferences?.interests.orEmpty()
+    val classes = student?.preferences?.classes.orEmpty()
     var showUnlinkDialog by remember { mutableStateOf(false) }
 
     Card(
@@ -365,6 +369,53 @@ fun UserCard(
                         .padding(start = 16.dp, bottom = 8.dp)
                         .widthIn(max = 200.dp)
                 )
+                if (interests.isNotEmpty() || classes.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                if (interests.isNotEmpty()) {
+                    Text(
+                        text = "Interests",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+                    )
+                    LazyRow(
+                        modifier = Modifier
+                            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(interests) { interest ->
+                            InterestBox(
+                                text = interest,
+                                selected = true,   // so they show with the mint green style
+                                onClick = {}       // read-only here
+                            )
+                        }
+                    }
+                }
+
+                if (classes.isNotEmpty()) {
+                    Text(
+                        text = "Classes",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+                    )
+                    LazyRow(
+                        modifier = Modifier
+                            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(classes) { course ->
+                            InterestBox(
+                                text = course,
+                                selected = true,
+                                onClick = {}
+                            )
+                        }
+                    }
+                }
                 if (!isMatched) {
                     // show link up button only for un-matched users
                     Button(

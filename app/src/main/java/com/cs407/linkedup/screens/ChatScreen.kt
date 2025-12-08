@@ -61,7 +61,6 @@ fun ChatScreen(
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotEmpty()) {
             val matchedUsers: List<UserRepository.MatchedUser> = repository.getMatchedUsers()
-            // for now, lastMessage + timestamp are placeholders
             chats = matchedUsers.map { mu ->
                 ChatPreview(
                     userId = mu.uid,
@@ -113,7 +112,6 @@ fun ChatScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Chat list
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)

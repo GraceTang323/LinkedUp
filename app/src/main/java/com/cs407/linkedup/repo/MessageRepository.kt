@@ -71,7 +71,6 @@ class MessageRepository(
                     val senderName = data["senderName"] as? String ?: ""
                     val text = data["text"] as? String ?: ""
 
-                    // Firestore may give null here while serverTimestamp is pending
                     val ts = data["time"] as? Timestamp ?: Timestamp.now()
 
                     ChatMessage(
