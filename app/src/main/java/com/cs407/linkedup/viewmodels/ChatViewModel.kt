@@ -19,7 +19,6 @@ class ChatViewModel(
     private var listenerRegistration: ListenerRegistration? = null
 
     fun startListening(roomId: String) {
-        // remove any old listener
         listenerRegistration?.remove()
         listenerRegistration = repo.listenForMessages(roomId) { list ->
             _messages.value = list

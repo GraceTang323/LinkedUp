@@ -1,6 +1,7 @@
 package com.cs407.linkedup.repo
 
 import android.util.Log
+import com.cs407.linkedup.data.UserPreferences
 import com.cs407.linkedup.viewmodels.Student
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.auth.FirebaseAuth
@@ -61,13 +62,20 @@ class UserRepository(
                 val map = doc.get("location") as? Map<*, *> ?: return@mapNotNull null
                 val lat = map["lat"] as? Double
                 val lng = map["lng"] as? Double
+                val interests = doc.get("interestPrefs") as? List<String> ?: emptyList()
+                val classes = doc.get("classes") as? List<String> ?: emptyList()
+
 
                 Student(
                     uid = uid,
                     name = name,
                     major = major,
                     bio = bio,
-                    location = LatLng(lat ?: 0.0, lng ?: 0.0)
+                    location = LatLng(lat ?: 0.0, lng ?: 0.0),
+                    preferences = UserPreferences(
+                        interests = interests,
+                        classes = classes
+                    )
                 )
             } ?: emptyList()
 
